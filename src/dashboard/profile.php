@@ -18,11 +18,11 @@ $profileUserId = isset($_GET['id']) ? intval($_GET['id']) : $currentUserId;
 $isOwnProfile = ($profileUserId === $currentUserId);
 
 // Get user profile data
-$sql = "SELECT id, full_name, email, role, bio, profile_picture, cover_photo, student_id, created_at 
+$sql = "SELECT id, full_name, email, role, bio, profile_image, cover_image, student_id, created_at 
         FROM users WHERE id = ? AND is_approved = 1";
 $user = $db->query($sql, [$profileUserId]);
 
-if (!$user) {
+if (!$user || empty($user)) {
     header('Location: newsfeed.php');
     exit;
 }
@@ -31,24 +31,41 @@ $user = $user[0];
 
 // Get user stats
 $postsSql = "SELECT COUNT(*) as count FROM posts WHERE user_id = ? AND is_approved = 1";
-$postsCount = $db->query($postsSql, [$profileUserId])[0]['count'];
+$postsResult = $db->query($postsSql, [$profileUserId]);
+$postsCount = $postsResult ? $postsResult[0]['count'] : 0;
 
-$friendsSql = "SELECT COUNT(*) as count FROM friendships WHERE (user_id = ? OR friend_id = ?) AND status = 'accepted'";
-$friendsCount = $db->query($friendsSql, [$profileUserId, $profileUserId])[0]['count'];
+// Count friends from friendships table (accepted friendships)
+$friendsSql = "SELECT COUNT(*) as count FROM friendships 
+               WHERE (user1_id = ? OR user2_id = ?)";
+$friendsResult = $db->query($friendsSql, [$profileUserId, $profileUserId]);
+$friendsCount = $friendsResult ? $friendsResult[0]['count'] : 0;
 
 // Check friendship status
 $friendshipStatus = 'none';
 if (!$isOwnProfile) {
-    $checkSql = "SELECT status, user_id FROM friendships 
-                 WHERE (user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?)";
-    $friendship = $db->query($checkSql, [$currentUserId, $profileUserId, $profileUserId, $currentUserId]);
-
-    if ($friendship) {
-        $friendshipStatus = $friendship[0]['status'];
-        if ($friendshipStatus === 'pending' && $friendship[0]['user_id'] === $currentUserId) {
-            $friendshipStatus = 'pending_sent';
-        } elseif ($friendshipStatus === 'pending') {
-            $friendshipStatus = 'pending_received';
+    // Check if already friends
+    $checkFriendshipSql = "SELECT id FROM friendships 
+                          WHERE (user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)";
+    $friendship = $db->query($checkFriendshipSql, [$currentUserId, $profileUserId, $profileUserId, $currentUserId]);
+    
+    if ($friendship && !empty($friendship)) {
+        $friendshipStatus = 'accepted';
+    } else {
+        // Check friend requests
+        $checkRequestSql = "SELECT status, sender_id FROM friend_requests 
+                           WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?)";
+        $request = $db->query($checkRequestSql, [$currentUserId, $profileUserId, $profileUserId, $currentUserId]);
+        
+        if ($request && !empty($request)) {
+            if ($request[0]['status'] === 'pending') {
+                if ($request[0]['sender_id'] === $currentUserId) {
+                    $friendshipStatus = 'pending_sent';
+                } else {
+                    $friendshipStatus = 'pending_received';
+                }
+            } elseif ($request[0]['status'] === 'accepted') {
+                $friendshipStatus = 'accepted';
+            }
         }
     }
 }
@@ -305,6 +322,83 @@ require_once '../includes/header.php';
             grid-template-columns: 1fr;
         }
     }
+
+    /* Edit Modal Styles */
+    #editModal {
+        display: none;
+        position: fixed;
+        z-index: 10000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+    }
+
+    .modal-backdrop {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+    }
+
+    .modal-content {
+        position: relative;
+        background-color: white;
+        margin: 5% auto;
+        max-width: 600px;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        animation: slideUp 0.3s ease;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--gray-light);
+    }
+
+    .modal-title {
+        margin: 0;
+        font-size: 1.25rem;
+    }
+
+    .modal-close {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: var(--gray-dark);
+        padding: 0;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: all 0.2s;
+    }
+
+    .modal-close:hover {
+        background-color: var(--gray-light);
+        color: var(--text-color);
+    }
+
+    .modal-body {
+        padding: 1.5rem;
+    }
+
+    .modal-footer {
+        padding: 1rem 1.5rem;
+        border-top: 1px solid var(--gray-light);
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+    }
 </style>
 
 <?php include '../includes/sidebar.php'; ?>
@@ -315,8 +409,8 @@ require_once '../includes/header.php';
     <div class="profile-wrapper">
         <!-- Cover Photo -->
         <div class="profile-cover animate-fade-in">
-            <?php if ($user['cover_photo']): ?>
-                <img src="../<?php echo htmlspecialchars($user['cover_photo']); ?>" alt="Cover">
+            <?php if (!empty($user['cover_image'])): ?>
+                <img src="../<?php echo htmlspecialchars($user['cover_image']); ?>" alt="Cover">
             <?php endif; ?>
 
             <?php if ($isOwnProfile): ?>
@@ -335,8 +429,8 @@ require_once '../includes/header.php';
         <div class="profile-header animate-slide-up">
             <div class="profile-avatar-container">
                 <div class="profile-avatar">
-                    <?php if ($user['profile_picture']): ?>
-                        <img src="../<?php echo htmlspecialchars($user['profile_picture']); ?>" alt="Profile">
+                    <?php if (!empty($user['profile_image']) && $user['profile_image'] !== 'default-avatar.png'): ?>
+                        <img src="../<?php echo htmlspecialchars($user['profile_image']); ?>" alt="Profile">
                     <?php else: ?>
                         <span><?php echo strtoupper(substr($user['full_name'], 0, 1)); ?></span>
                     <?php endif; ?>
@@ -547,20 +641,74 @@ require_once '../includes/header.php';
     const profileUserId = <?php echo $profileUserId; ?>;
     const isOwnProfile = <?php echo $isOwnProfile ? 'true' : 'false'; ?>;
 
+    // Centralized API request helper
+    async function apiRequest(url, options = {}) {
+        try {
+            const response = await fetch(url, options);
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                let errorMessage = 'Request failed';
+                try {
+                    const errorData = JSON.parse(errorText);
+                    errorMessage = errorData.message || errorMessage;
+                } catch (e) {
+                    errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+                }
+                return { success: false, message: errorMessage };
+            }
+            
+            const data = await response.json();
+            return { success: data.success !== false, data: data, message: data.message || '' };
+        } catch (error) {
+            console.error('API request error:', error);
+            return { 
+                success: false, 
+                message: error.message === 'Failed to fetch' ? 'Connection error. Please check your internet.' : 'An error occurred' 
+            };
+        }
+    }
+
+    function showAlert(message, type) {
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type} animate-slide-down`;
+        alert.style.position = 'fixed';
+        alert.style.top = '20px';
+        alert.style.right = '20px';
+        alert.style.zIndex = '9999';
+        alert.innerHTML = `<span>${message}</span>`;
+        document.body.appendChild(alert);
+        
+        setTimeout(() => {
+            alert.remove();
+        }, 3000);
+    }
+
     // Load user posts
     loadUserPosts();
 
     async function loadUserPosts() {
-        try {
-            const response = await fetch(`../api/posts.php?action=get_user_posts&user_id=${profileUserId}`);
-            const data = await response.json();
+        const container = document.getElementById('userPosts');
+        container.innerHTML = '<div class="text-center" style="padding: 2rem;"><div class="spinner"></div><p style="margin-top: 1rem; color: var(--gray-dark);">Loading posts...</p></div>';
 
-            const container = document.getElementById('userPosts');
+        const result = await apiRequest(`../api/posts.php?action=get_user_posts&user_id=${profileUserId}`);
 
-            if (data.success && data.posts.length > 0) {
-                container.innerHTML = data.posts.map(post => createPostHTML(post)).join('');
-            } else {
-                container.innerHTML = `
+        if (!result.success || !result.data) {
+            container.innerHTML = `
+                <div class="text-center" style="padding: 3rem;">
+                    <p style="color: var(--error);">${result.message || 'Failed to load posts'}</p>
+                    <button class="btn btn-secondary" onclick="loadUserPosts()" style="margin-top: 1rem;">Retry</button>
+                </div>
+            `;
+            return;
+        }
+
+        const posts = result.data.posts || [];
+
+        if (posts.length > 0) {
+            container.innerHTML = posts.map(post => createPostHTML(post)).join('');
+        } else {
+            container.innerHTML = `
                 <div class="text-center" style="padding: 3rem;">
                     <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin: 0 auto 1rem; color: var(--gray-dark);">
                         <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
@@ -570,9 +718,6 @@ require_once '../includes/header.php';
                     <p style="color: var(--gray-dark);">No posts yet</p>
                 </div>
             `;
-            }
-        } catch (error) {
-            console.error('Error loading posts:', error);
         }
     }
 
@@ -601,72 +746,153 @@ require_once '../includes/header.php';
     }
 
     function openEditModal() {
-        document.getElementById('editModal').classList.add('active');
+        const modal = document.getElementById('editModal');
+        if (modal) {
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
     }
 
     function closeEditModal() {
-        document.getElementById('editModal').classList.remove('active');
+        const modal = document.getElementById('editModal');
+        if (modal) {
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
+        }
     }
 
+    // Close modal on Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeEditModal();
+        }
+    });
+
     async function saveProfile() {
-        const formData = {
-            full_name: document.getElementById('editFullName').value,
-            bio: document.getElementById('editBio').value,
-            student_id: document.getElementById('editStudentId').value
-        };
+        const fullName = document.getElementById('editFullName').value.trim();
+        const bio = document.getElementById('editBio').value.trim();
+        const studentId = document.getElementById('editStudentId').value.trim();
 
-        try {
-            const response = await fetch('../api/users.php?action=update_profile', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(formData)
-            });
+        if (!fullName) {
+            showAlert('Full name is required', 'error');
+            return;
+        }
 
-            const data = await response.json();
+        const saveBtn = document.querySelector('#editModal .btn-primary');
+        const originalText = saveBtn.textContent;
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
 
-            if (data.success) {
+        const result = await apiRequest('../api/users.php?action=update_profile', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                full_name: fullName,
+                bio: bio,
+                student_id: studentId
+            })
+        });
+
+        saveBtn.disabled = false;
+        saveBtn.textContent = originalText;
+
+        if (result.success) {
+            showAlert('Profile updated successfully!', 'success');
+            setTimeout(() => {
                 location.reload();
-            } else {
-                alert(data.message || 'Failed to update profile');
-            }
-        } catch (error) {
-            alert('Connection error');
+            }, 1000);
+        } else {
+            showAlert(result.message || 'Failed to update profile', 'error');
         }
     }
 
     // Handle photo uploads
-    document.getElementById('avatarInput')?.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (file) await uploadPhoto(file, 'profile');
-    });
+    const avatarInput = document.getElementById('avatarInput');
+    const coverInput = document.getElementById('coverInput');
 
-    document.getElementById('coverInput')?.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (file) await uploadPhoto(file, 'cover');
-    });
+    if (avatarInput) {
+        avatarInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                // Validate file
+                const maxSize = 5 * 1024 * 1024; // 5MB
+                const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+                
+                if (file.size > maxSize) {
+                    showAlert('Image size must be less than 5MB', 'error');
+                    e.target.value = '';
+                    return;
+                }
+                
+                if (!allowedTypes.includes(file.type)) {
+                    showAlert('Invalid image type. Please use JPEG, PNG, GIF, or WebP.', 'error');
+                    e.target.value = '';
+                    return;
+                }
+                
+                await uploadPhoto(file, 'profile');
+            }
+        });
+    }
+
+    if (coverInput) {
+        coverInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                // Validate file
+                const maxSize = 5 * 1024 * 1024; // 5MB
+                const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+                
+                if (file.size > maxSize) {
+                    showAlert('Image size must be less than 5MB', 'error');
+                    e.target.value = '';
+                    return;
+                }
+                
+                if (!allowedTypes.includes(file.type)) {
+                    showAlert('Invalid image type. Please use JPEG, PNG, GIF, or WebP.', 'error');
+                    e.target.value = '';
+                    return;
+                }
+                
+                await uploadPhoto(file, 'cover');
+            }
+        });
+    }
 
     async function uploadPhoto(file, type) {
         const formData = new FormData();
         formData.append('photo', file);
         formData.append('type', type);
 
-        try {
-            const response = await fetch('../api/users.php?action=upload_photo', {
-                method: 'POST',
-                body: formData
-            });
+        // Show loading indicator
+        const uploadBtn = type === 'profile' 
+            ? document.querySelector('.profile-avatar-edit')
+            : document.querySelector('.profile-cover-edit');
+        if (uploadBtn) {
+            uploadBtn.style.opacity = '0.6';
+            uploadBtn.style.pointerEvents = 'none';
+        }
 
-            const data = await response.json();
+        const result = await apiRequest('../api/users.php?action=upload_photo', {
+            method: 'POST',
+            body: formData
+        });
 
-            if (data.success) {
+        if (uploadBtn) {
+            uploadBtn.style.opacity = '1';
+            uploadBtn.style.pointerEvents = 'auto';
+        }
+
+        if (result.success) {
+            showAlert('Photo uploaded successfully!', 'success');
+            setTimeout(() => {
                 location.reload();
-            } else {
-                alert(data.message || 'Upload failed');
-            }
-        } catch (error) {
-            alert('Connection error');
+            }, 1000);
+        } else {
+            showAlert(result.message || 'Upload failed', 'error');
         }
     }
 
@@ -689,40 +915,72 @@ require_once '../includes/header.php';
     }
 
     async function sendFriendRequest(userId) {
-        try {
-            const response = await fetch('../api/users.php?action=send_friend_request', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    friend_id: userId
-                })
-            });
+        const btn = event.target.closest('button');
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Sending...';
+        }
 
-            const data = await response.json();
-            if (data.success) location.reload();
-        } catch (error) {
-            alert('Connection error');
+        const result = await apiRequest('../api/users.php?action=send_friend_request', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                friend_id: userId
+            })
+        });
+
+        if (result.success) {
+            showAlert('Friend request sent!', 'success');
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
+        } else {
+            showAlert(result.message || 'Failed to send friend request', 'error');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = `
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="8.5" cy="7" r="4"></circle>
+                        <line x1="20" y1="8" x2="20" y2="14"></line>
+                        <line x1="23" y1="11" x2="17" y2="11"></line>
+                    </svg>
+                    Add Friend
+                `;
+            }
         }
     }
 
     async function acceptFriendRequest(userId) {
-        try {
-            const response = await fetch('../api/users.php?action=accept_friend_request', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    friend_id: userId
-                })
-            });
+        const btn = event.target.closest('button');
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Accepting...';
+        }
 
-            const data = await response.json();
-            if (data.success) location.reload();
-        } catch (error) {
-            alert('Connection error');
+        const result = await apiRequest('../api/users.php?action=accept_friend_request', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                friend_id: userId
+            })
+        });
+
+        if (result.success) {
+            showAlert('Friend request accepted!', 'success');
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
+        } else {
+            showAlert(result.message || 'Failed to accept friend request', 'error');
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = 'Accept Request';
+            }
         }
     }
 </script>

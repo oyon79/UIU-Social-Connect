@@ -22,6 +22,9 @@ switch ($action) {
     case 'get_all':
         getAllPosts($db);
         break;
+    case 'get_user_posts':
+        getUserPosts($db);
+        break;
     case 'like':
         toggleLike($db);
         break;
@@ -126,6 +129,33 @@ function getAllPosts($db)
         'success' => true,
         'posts' => $posts ?: [],
         'page' => $page
+    ]);
+}
+
+function getUserPosts($db)
+{
+    $userId = intval($_GET['user_id'] ?? $_SESSION['user_id']);
+    $currentUserId = $_SESSION['user_id'];
+
+    // Get approved posts for specific user with user info and like status
+    $sql = "SELECT 
+                p.*,
+                u.full_name as author_name,
+                u.role as author_role,
+                (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id) as likes_count,
+                (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comments_count,
+                (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id AND user_id = ?) as user_liked
+            FROM posts p
+            INNER JOIN users u ON p.user_id = u.id
+            WHERE p.user_id = ? AND p.is_approved = 1
+            ORDER BY p.created_at DESC
+            LIMIT 50";
+
+    $posts = $db->query($sql, [$currentUserId, $userId]);
+
+    echo json_encode([
+        'success' => true,
+        'posts' => $posts ?: []
     ]);
 }
 
