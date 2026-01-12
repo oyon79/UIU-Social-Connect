@@ -31,6 +31,9 @@ switch ($action) {
     case 'get_pending_notices':
         getPendingNotices($db);
         break;
+    case 'get_pending_marketplace':
+        getPendingMarketplace($db);
+        break;
     case 'approve_user':
         approveUser($db);
         break;
@@ -60,6 +63,12 @@ switch ($action) {
         break;
     case 'reject_notice':
         rejectNotice($db);
+        break;
+    case 'approve_marketplace':
+        approveMarketplace($db);
+        break;
+    case 'reject_marketplace':
+        rejectMarketplace($db);
         break;
     default:
         echo json_encode(['success' => false, 'message' => 'Invalid action']);
@@ -142,6 +151,22 @@ function getPendingNotices($db)
     echo json_encode([
         'success' => true,
         'notices' => $notices ?: []
+    ]);
+}
+
+function getPendingMarketplace($db)
+{
+    $sql = "SELECT m.*, u.full_name as seller_name
+            FROM marketplace_items m
+            INNER JOIN users u ON m.user_id = u.id
+            WHERE m.is_approved = 0
+            ORDER BY m.created_at DESC";
+
+    $items = $db->query($sql);
+
+    echo json_encode([
+        'success' => true,
+        'items' => $items ?: []
     ]);
 }
 
@@ -498,6 +523,85 @@ function rejectNotice($db)
         echo json_encode([
             'success' => false,
             'message' => 'Failed to reject notice'
+        ]);
+    }
+}
+
+function approveMarketplace($db)
+{
+    $data = json_decode(file_get_contents('php://input'), true);
+    $itemId = intval($data['item_id'] ?? 0);
+    $adminId = $_SESSION['user_id'];
+
+    if (!$itemId) {
+        echo json_encode(['success' => false, 'message' => 'Invalid item ID']);
+        return;
+    }
+
+    $sql = "UPDATE marketplace_items SET is_approved = 1, approved_by = ?, approved_at = NOW() WHERE id = ?";
+    $result = $db->query($sql, [$adminId, $itemId]);
+
+    if ($result) {
+        // Get item owner
+        $itemSql = "SELECT user_id FROM marketplace_items WHERE id = ?";
+        $item = $db->query($itemSql, [$itemId]);
+
+        if ($item) {
+            // Notify user about item approval
+            $notifSql = "INSERT INTO notifications (user_id, type, title, message, reference_id, reference_type, created_at) 
+                         VALUES (?, 'approval', 'Item Approved', 'Your marketplace item has been approved!', ?, 'marketplace', NOW())";
+            $db->query($notifSql, [$item[0]['user_id'], $itemId]);
+        }
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Item approved successfully'
+        ]);
+    } else {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Failed to approve item'
+        ]);
+    }
+}
+
+function rejectMarketplace($db)
+{
+    $data = json_decode(file_get_contents('php://input'), true);
+    $itemId = intval($data['item_id'] ?? 0);
+
+    if (!$itemId) {
+        echo json_encode(['success' => false, 'message' => 'Invalid item ID']);
+        return;
+    }
+
+    // Get item owner and image before deleting
+    $itemSql = "SELECT user_id, image_url FROM marketplace_items WHERE id = ?";
+    $item = $db->query($itemSql, [$itemId]);
+
+    // Delete image if exists
+    if ($item && $item[0]['image_url'] && file_exists('../' . $item[0]['image_url'])) {
+        unlink('../' . $item[0]['image_url']);
+    }
+
+    // Delete item
+    $sql = "DELETE FROM marketplace_items WHERE id = ?";
+    $result = $db->query($sql, [$itemId]);
+
+    if ($result && $item) {
+        // Notify user about item rejection
+        $notifSql = "INSERT INTO notifications (user_id, type, title, message, reference_id, reference_type, created_at) 
+                     VALUES (?, 'rejection', 'Item Rejected', 'Your marketplace item was not approved.', ?, 'marketplace', NOW())";
+        $db->query($notifSql, [$item[0]['user_id'], $itemId]);
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Item rejected'
+        ]);
+    } else {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Failed to reject item'
         ]);
     }
 }

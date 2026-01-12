@@ -1,13 +1,14 @@
 <?php
+session_start();
 require_once '../includes/config.php';
 require_once '../includes/db.php';
 require_once '../includes/functions.php';
 
 header('Content-Type: application/json');
 
-// Get request data
+// Get request data - check both GET parameter and JSON body
 $input = json_decode(file_get_contents('php://input'), true);
-$action = $input['action'] ?? '';
+$action = $_GET['action'] ?? $input['action'] ?? '';
 
 switch ($action) {
     case 'login':
@@ -28,6 +29,10 @@ switch ($action) {
 
     case 'reset_password':
         handleResetPassword($input);
+        break;
+
+    case 'change_password':
+        handleChangePassword($input);
         break;
 
     case 'check_session':
@@ -303,6 +308,64 @@ function handleResetPassword($input)
     }
 
     jsonResponse(['success' => false, 'message' => 'Failed to reset password']);
+}
+
+// Handle Change Password
+function handleChangePassword($input)
+{
+    // Check if user is logged in
+    if (!isset($_SESSION['user_id'])) {
+        jsonResponse(['success' => false, 'message' => 'Unauthorized']);
+        return;
+    }
+
+    $current_password = $input['current_password'] ?? '';
+    $new_password = $input['new_password'] ?? '';
+
+    if (empty($current_password) || empty($new_password)) {
+        jsonResponse(['success' => false, 'message' => 'Current password and new password are required']);
+        return;
+    }
+
+    if (strlen($new_password) < 6) {
+        jsonResponse(['success' => false, 'message' => 'New password must be at least 6 characters']);
+        return;
+    }
+
+    $db = getDB();
+    $userId = $_SESSION['user_id'];
+
+    // Get current user password
+    $stmt = $db->prepare("SELECT password FROM users WHERE id = ?");
+    $stmt->bind_param("i", $userId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($user = $result->fetch_assoc()) {
+        // Verify current password
+        if (!password_verify($current_password, $user['password'])) {
+            jsonResponse(['success' => false, 'message' => 'Current password is incorrect']);
+            return;
+        }
+
+        // Hash new password
+        $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
+
+        // Update password
+        $stmt = $db->prepare("UPDATE users SET password = ? WHERE id = ?");
+        $stmt->bind_param("si", $hashed_password, $userId);
+
+        if ($stmt->execute()) {
+            logActivity($userId, null, 'Password Change', 'User changed password successfully');
+            jsonResponse([
+                'success' => true,
+                'message' => 'Password changed successfully'
+            ]);
+            return;
+        }
+    }
+
+    jsonResponse(['success' => false, 'message' => 'Failed to change password']);
 }
 
 // Check Session

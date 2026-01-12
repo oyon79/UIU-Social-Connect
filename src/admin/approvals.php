@@ -245,6 +245,10 @@ $pageTitle = 'Approvals - Admin Panel';
                 Notices
                 <span class="tab-badge" id="noticesCount">0</span>
             </button>
+            <button class="tab" onclick="switchTab('marketplace')">
+                Marketplace
+                <span class="tab-badge" id="marketplaceCount">0</span>
+            </button>
         </div>
 
         <!-- Tab Contents -->
@@ -292,6 +296,15 @@ $pageTitle = 'Approvals - Admin Panel';
                 </div>
             </div>
         </div>
+
+        <div id="marketplaceTab" class="tab-content">
+            <div id="marketplaceList">
+                <div class="text-center" style="padding: 3rem;">
+                    <div class="spinner"></div>
+                    <p style="margin-top: 1rem; color: var(--gray-dark);">Loading marketplace items...</p>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -304,6 +317,7 @@ $pageTitle = 'Approvals - Admin Panel';
             loadEvents();
             loadJobs();
             loadNotices();
+            loadMarketplace();
         });
 
         function switchTab(tab) {
@@ -1068,6 +1082,159 @@ $pageTitle = 'Approvals - Admin Panel';
                 }
             } catch (error) {
                 console.error('Reject notice request failed:', error);
+                showAlert('Connection error', 'error');
+            }
+        }
+
+        async function loadMarketplace() {
+            try {
+                const response = await fetch('../api/approvals.php?action=get_pending_marketplace');
+                const data = await response.json();
+
+                const container = document.getElementById('marketplaceList');
+                document.getElementById('marketplaceCount').textContent = data.items?.length || 0;
+
+                if (data.success && data.items && data.items.length > 0) {
+                    container.innerHTML = data.items.map(item => {
+                        return `
+                        <div class="approval-card animate-slide-up">
+                            <div class="approval-header">
+                                <div class="approval-user">
+                                    <div class="avatar">
+                                        <span>${item.seller_name ? item.seller_name.charAt(0).toUpperCase() : 'S'}</span>
+                                    </div>
+                                    <div>
+                                        <h4>${escapeHtml(item.title || 'Untitled Item')}</h4>
+                                        <p style="color: var(--gray-dark); font-size: 0.875rem;">
+                                            ${escapeHtml(item.seller_name || 'Unknown')} • ${getTimeAgo(item.created_at)}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="approval-actions">
+                                    <button class="btn btn-success" onclick="approveMarketplace(${item.id})">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                        </svg>
+                                        Approve
+                                    </button>
+                                    <button class="btn btn-danger" onclick="rejectMarketplace(${item.id})">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                                        </svg>
+                                        Reject
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="approval-content">
+                                ${item.image_url ? `
+                                <div style="margin-bottom: 1rem;">
+                                    <img src="../${escapeHtml(item.image_url)}" alt="${escapeHtml(item.title)}" style="width: 100%; max-width: 300px; height: auto; border-radius: 8px;">
+                                </div>
+                                ` : ''}
+                                <p style="margin-bottom: 0.75rem;"><strong>Price:</strong> ৳${parseFloat(item.price || 0).toFixed(2)}</p>
+                                <p style="margin-bottom: 0.75rem;"><strong>Category:</strong> ${escapeHtml(item.category || 'Other')}</p>
+                                <p style="margin-bottom: 0.75rem;"><strong>Condition:</strong> ${escapeHtml(item.condition_status || 'good')}</p>
+                                <p style="margin-bottom: 1rem;"><strong>Description:</strong></p>
+                                <p>${escapeHtml(item.description || 'No description provided.')}</p>
+                            </div>
+                        </div>
+                    `;
+                    }).join('');
+                } else {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                                <line x1="3" y1="6" x2="21" y2="6"></line>
+                                <path d="M16 10a4 4 0 0 1-8 0"></path>
+                            </svg>
+                            <h3>All Caught Up!</h3>
+                            <p style="color: var(--gray-dark);">No pending marketplace approvals</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading marketplace:', error);
+                document.getElementById('marketplaceList').innerHTML = `
+                    <div class="empty-state">
+                        <h3>Error Loading Marketplace</h3>
+                        <p style="color: var(--gray-dark);">Please refresh the page</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function approveMarketplace(itemId) {
+            if (!confirm('Approve this marketplace item?')) return;
+
+            try {
+                const response = await fetch('../api/approvals.php?action=approve_marketplace', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        item_id: itemId
+                    })
+                });
+
+                const text = await response.text();
+                let data;
+                try {
+                    data = text ? JSON.parse(text) : {};
+                } catch (parseError) {
+                    console.error('Invalid JSON response for approve_marketplace:', text);
+                    showAlert('Server error while approving item', 'error');
+                    return;
+                }
+
+                if (data.success) {
+                    loadMarketplace();
+                    showAlert('Item approved successfully', 'success');
+                } else {
+                    showAlert(data.message || 'Failed to approve item', 'error');
+                }
+            } catch (error) {
+                console.error('Approve marketplace request failed:', error);
+                showAlert('Connection error', 'error');
+            }
+        }
+
+        async function rejectMarketplace(itemId) {
+            if (!confirm('Reject this marketplace item? This will delete the item.')) return;
+
+            try {
+                const response = await fetch('../api/approvals.php?action=reject_marketplace', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        item_id: itemId
+                    })
+                });
+
+                const text = await response.text();
+                let data;
+                try {
+                    data = text ? JSON.parse(text) : {};
+                } catch (parseError) {
+                    console.error('Invalid JSON response for reject_marketplace:', text);
+                    showAlert('Server error while rejecting item', 'error');
+                    return;
+                }
+
+                if (data.success) {
+                    loadMarketplace();
+                    showAlert('Item rejected', 'success');
+                } else {
+                    showAlert(data.message || 'Failed to reject item', 'error');
+                }
+            } catch (error) {
+                console.error('Reject marketplace request failed:', error);
                 showAlert('Connection error', 'error');
             }
         }

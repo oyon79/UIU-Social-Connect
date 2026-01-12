@@ -283,7 +283,7 @@ require_once '../includes/header.php';
         const studentId = document.getElementById('studentId').value.trim();
 
         if (!fullName) {
-            alert('Name cannot be empty');
+            showAlert('Name cannot be empty', 'error');
             return;
         }
 
@@ -302,12 +302,13 @@ require_once '../includes/header.php';
 
             const data = await response.json();
             if (data.success) {
-                alert('Account updated successfully!');
+                showAlert('Account updated successfully!', 'success');
             } else {
-                alert(data.message || 'Failed to update');
+                showAlert(data.message || 'Failed to update', 'error');
             }
         } catch (error) {
-            alert('Connection error');
+            console.error('Error updating account:', error);
+            showAlert('Connection error. Please try again.', 'error');
         }
     }
 
@@ -317,17 +318,17 @@ require_once '../includes/header.php';
         const confirm = document.getElementById('confirmPassword').value;
 
         if (!current || !newPass || !confirm) {
-            alert('Please fill all fields');
+            showAlert('Please fill all fields', 'error');
             return;
         }
 
         if (newPass !== confirm) {
-            alert('New passwords do not match');
+            showAlert('New passwords do not match', 'error');
             return;
         }
 
         if (newPass.length < 6) {
-            alert('Password must be at least 6 characters');
+            showAlert('Password must be at least 6 characters', 'error');
             return;
         }
 
@@ -343,16 +344,39 @@ require_once '../includes/header.php';
                 })
             });
 
-            const data = await response.json();
+            const text = await response.text();
+            let data;
+            try {
+                data = text ? JSON.parse(text) : {};
+            } catch (parseError) {
+                console.error('Invalid JSON response:', text);
+                showAlert('Server error. Please try again.', 'error');
+                return;
+            }
+
             if (data.success) {
-                alert('Password changed successfully!');
+                showAlert('Password changed successfully!', 'success');
                 document.getElementById('passwordForm').reset();
             } else {
-                alert(data.message || 'Failed to change password');
+                showAlert(data.message || 'Failed to change password', 'error');
             }
         } catch (error) {
-            alert('Connection error');
+            console.error('Error changing password:', error);
+            showAlert('Connection error. Please try again.', 'error');
         }
+    }
+
+    function showAlert(message, type) {
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type} animate-slide-down`;
+        alert.style.position = 'fixed';
+        alert.style.top = '20px';
+        alert.style.right = '20px';
+        alert.style.zIndex = '9999';
+        alert.style.minWidth = '300px';
+        alert.innerHTML = `<span>${message}</span>`;
+        document.body.appendChild(alert);
+        setTimeout(() => alert.remove(), 3000);
     }
 
     function deleteAccount() {
