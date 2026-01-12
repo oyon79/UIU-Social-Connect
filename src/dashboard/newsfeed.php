@@ -28,15 +28,224 @@ require_once '../includes/header.php';
     }
     
     .content-wrapper {
-        max-width: 680px;
+        display: flex;
+        gap: 2rem;
+        max-width: 1200px;
         margin: 0 auto;
         padding: 2rem 1rem;
+    }
+    
+    .feed-column {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .sidebar-column {
+        width: 320px;
+        flex-shrink: 0;
+    }
+    
+    @media (max-width: 1024px) {
+        .content-wrapper {
+            flex-direction: column;
+        }
+        
+        .sidebar-column {
+            width: 100%;
+        }
     }
     
     @media (max-width: 768px) {
         .main-container {
             margin-left: 0;
         }
+        
+        .content-wrapper {
+            padding: 1rem 0.5rem;
+            gap: 1rem;
+        }
+    }
+    
+    /* Sidebar Styles */
+    .sidebar-widget {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+    
+    .sidebar-widget h3 {
+        margin: 0 0 1rem 0;
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--text-color);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .sidebar-widget h3 svg {
+        width: 20px;
+        height: 20px;
+        color: var(--primary);
+    }
+    
+    .notice-item {
+        padding: 0.75rem 0;
+        border-bottom: 1px solid var(--gray-light);
+    }
+    
+    .notice-item:last-child {
+        border-bottom: none;
+    }
+    
+    .notice-item.priority-urgent {
+        border-left: 3px solid var(--error);
+        padding-left: 0.75rem;
+    }
+    
+    .notice-item.priority-high {
+        border-left: 3px solid var(--warning);
+        padding-left: 0.75rem;
+    }
+    
+    .notice-title {
+        font-weight: 600;
+        font-size: 0.875rem;
+        color: var(--text-color);
+        margin-bottom: 0.25rem;
+        cursor: pointer;
+        transition: color 0.2s;
+    }
+    
+    .notice-title:hover {
+        color: var(--primary);
+    }
+    
+    .notice-meta {
+        font-size: 0.75rem;
+        color: var(--gray-dark);
+    }
+    
+    .user-list-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.5rem 0;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        border-radius: 8px;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+    }
+    
+    .user-list-item:hover {
+        background-color: var(--gray-light);
+    }
+    
+    .user-list-item .avatar {
+        width: 36px;
+        height: 36px;
+        font-size: 14px;
+        flex-shrink: 0;
+    }
+    
+    .user-list-item .avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 50%;
+    }
+    
+    .user-list-item .user-info {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .user-list-item .user-name {
+        font-weight: 500;
+        font-size: 0.875rem;
+        color: var(--text-color);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .user-list-item .user-role {
+        font-size: 0.75rem;
+        color: var(--gray-dark);
+    }
+    
+    .group-item, .event-item {
+        padding: 0.75rem 0;
+        border-bottom: 1px solid var(--gray-light);
+        cursor: pointer;
+        transition: background-color 0.2s;
+        border-radius: 8px;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+        margin-left: -0.5rem;
+        margin-right: -0.5rem;
+    }
+    
+    .group-item:last-child, .event-item:last-child {
+        border-bottom: none;
+    }
+    
+    .group-item:hover, .event-item:hover {
+        background-color: var(--gray-light);
+    }
+    
+    .group-name, .event-title {
+        font-weight: 600;
+        font-size: 0.875rem;
+        color: var(--text-color);
+        margin-bottom: 0.25rem;
+    }
+    
+    .group-meta, .event-meta {
+        font-size: 0.75rem;
+        color: var(--gray-dark);
+    }
+    
+    .quick-links {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .quick-links li {
+        margin-bottom: 0.5rem;
+    }
+    
+    .quick-links a {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem;
+        color: var(--text-color);
+        text-decoration: none;
+        border-radius: 8px;
+        transition: all 0.2s;
+        font-size: 0.875rem;
+    }
+    
+    .quick-links a:hover {
+        background-color: var(--gray-light);
+        color: var(--primary);
+    }
+    
+    .quick-links a svg {
+        width: 18px;
+        height: 18px;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 2rem 1rem;
+        color: var(--gray-dark);
+        font-size: 0.875rem;
     }
     
     /* Comments Modal Styles */
@@ -59,6 +268,16 @@ require_once '../includes/header.php';
         border-radius: 12px;
         box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
         animation: slideUp 0.3s ease;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+    
+    .modal-footer {
+        padding: 1rem 1.5rem;
+        border-top: 1px solid var(--gray-light);
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
     }
     
     .modal-header {
@@ -116,6 +335,102 @@ require_once '../includes/header.php';
     .like-btn.active {
         color: var(--primary);
     }
+    
+    /* Post Menu Dropdown */
+    .post-menu {
+        position: relative;
+    }
+    
+    .post-menu-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0.5rem;
+        border-radius: 50%;
+        transition: all 0.2s;
+        color: var(--gray-dark);
+    }
+    
+    .post-menu-btn:hover {
+        background-color: var(--gray-light);
+        color: var(--text-color);
+    }
+    
+    .post-menu-dropdown {
+        display: none;
+        position: absolute;
+        top: 100%;
+        right: 0;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        min-width: 150px;
+        z-index: 1000;
+        margin-top: 0.5rem;
+        overflow: hidden;
+    }
+    
+    .post-menu-dropdown.show {
+        display: block;
+        animation: slideDown 0.2s ease;
+    }
+    
+    .post-menu-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 1rem;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        border: none;
+        background: none;
+        width: 100%;
+        text-align: left;
+        color: var(--text-color);
+    }
+    
+    .post-menu-item:hover {
+        background-color: var(--gray-light);
+    }
+    
+    .post-menu-item.delete {
+        color: var(--error);
+    }
+    
+    .post-menu-item.delete:hover {
+        background-color: rgba(220, 53, 69, 0.1);
+    }
+    
+    /* Edit Post Modal */
+    #editPostModal {
+        display: none;
+    }
+    
+    #editPostModal .modal-content {
+        max-width: 600px;
+    }
+    
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    @keyframes fadeOut {
+        from {
+            opacity: 1;
+            transform: scale(1);
+        }
+        to {
+            opacity: 0;
+            transform: scale(0.95);
+        }
+    }
 </style>
 
 <?php include '../includes/sidebar.php'; ?>
@@ -124,6 +439,8 @@ require_once '../includes/header.php';
     <?php include '../includes/navbar.php'; ?>
     
     <div class="content-wrapper">
+        <!-- Feed Column -->
+        <div class="feed-column">
         <!-- Create Post Box -->
         <div class="create-post-box animate-fade-in">
             <div class="create-post-input">
@@ -188,6 +505,180 @@ require_once '../includes/header.php';
         <div class="text-center" style="margin: 2rem 0;">
             <button class="btn btn-secondary" id="loadMoreBtn">Load More Posts</button>
         </div>
+        </div>
+        
+        <!-- Sidebar Column -->
+        <div class="sidebar-column">
+            <!-- Important Notice Board -->
+            <div class="sidebar-widget" id="noticesWidget">
+                <h3>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-5m-1.414-9.414a2 2 0 1 1 2.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                    </svg>
+                    Important Notices
+                </h3>
+                <div id="noticesList"></div>
+            </div>
+            
+            <!-- Friends Online -->
+            <div class="sidebar-widget" id="friendsWidget">
+                <h3>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                    Friends Online
+                </h3>
+                <div id="friendsList"></div>
+            </div>
+            
+            <!-- Your Groups -->
+            <div class="sidebar-widget" id="groupsWidget">
+                <h3>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                    Your Groups
+                </h3>
+                <div id="groupsList"></div>
+            </div>
+            
+            <!-- Upcoming Events -->
+            <div class="sidebar-widget" id="eventsWidget">
+                <h3>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    Upcoming Events
+                </h3>
+                <div id="eventsList"></div>
+            </div>
+            
+            <!-- Teachers -->
+            <div class="sidebar-widget" id="teachersWidget">
+                <h3>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                    Teachers
+                </h3>
+                <div id="teachersList"></div>
+            </div>
+            
+            <!-- Quick Links -->
+            <!-- <div class="sidebar-widget" id="quickLinksWidget">
+                <h3>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    Quick Links
+                </h3>
+                <ul class="quick-links">
+                    <li><a href="events.php">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                        Events
+                    </a></li>
+
+                    <li><a href="jobs.php">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                        </svg>
+                        Jobs
+                    </a></li>
+                    <li><a href="notices.php">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M11 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-5m-1.414-9.414a2 2 0 1 1 2.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                        </svg>
+                        Notices
+                    </a></li>
+                    <li><a href="marketplace.php">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="9" cy="21" r="1"></circle>
+                            <circle cx="20" cy="21" r="1"></circle>
+                            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                        </svg>
+                        Marketplace
+                    </a></li>
+                </ul>
+            </div> -->
+        </div>
+    </div>
+</div>
+
+<!-- Edit Post Modal -->
+<div id="editPostModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Edit Post</h3>
+            <button class="modal-close" onclick="closeEditPostModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <textarea id="editPostContent" class="form-control" rows="6" placeholder="What's on your mind?"></textarea>
+            
+            <!-- Current Image Display -->
+            <div id="editCurrentImageContainer" style="display: none; margin-top: 1rem;">
+                <p style="font-size: 0.875rem; color: var(--gray-dark); margin-bottom: 0.5rem;">Current Image:</p>
+                <div style="position: relative; display: inline-block;">
+                    <img id="editCurrentImage" src="" alt="Current post image" style="max-width: 100%; max-height: 300px; border-radius: 8px; border: 1px solid var(--gray-light);">
+                    <button type="button" class="btn btn-ghost btn-sm" onclick="removeEditImage()" style="position: absolute; top: 0.5rem; right: 0.5rem; background: rgba(255, 255, 255, 0.9);">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- New Image Preview -->
+            <div id="editImagePreview" style="display: none; margin-top: 1rem;">
+                <p style="font-size: 0.875rem; color: var(--gray-dark); margin-bottom: 0.5rem;">New Image:</p>
+                <div style="position: relative; display: inline-block;">
+                    <img id="editPreviewImg" src="" alt="Preview" style="max-width: 100%; max-height: 300px; border-radius: 8px; border: 1px solid var(--gray-light);">
+                    <button type="button" class="btn btn-ghost btn-sm" onclick="removeEditNewImage()" style="position: absolute; top: 0.5rem; right: 0.5rem; background: rgba(255, 255, 255, 0.9);">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Image Upload Button -->
+            <div style="margin-top: 1rem;">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('editImageInput').click()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 0.5rem;">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                        <polyline points="21 15 16 10 5 21"></polyline>
+                    </svg>
+                    Change Image
+                </button>
+            </div>
+            
+            <input type="file" id="editImageInput" accept="image/*" style="display: none;">
+            <input type="hidden" id="editRemoveImage" value="0">
+        </div>
+        <div class="modal-footer" style="padding: 1rem; border-top: 1px solid var(--gray-light); display: flex; justify-content: flex-end; gap: 1rem;">
+            <button class="btn btn-secondary" onclick="closeEditPostModal()">Cancel</button>
+            <button class="btn btn-primary" id="saveEditPostBtn" onclick="saveEditPost()">Save Changes</button>
+        </div>
     </div>
 </div>
 
@@ -230,6 +721,7 @@ async function apiRequest(url, options = {}) {
 // Load posts on page load
 document.addEventListener('DOMContentLoaded', () => {
     loadPosts();
+    loadSidebarData();
 });
 
 // Create post
@@ -430,6 +922,7 @@ function createPostElement(post) {
     const authorRole = escapeHtml(post.author_role || '');
     const authorInitial = authorName.charAt(0).toUpperCase();
     const content = escapeHtml(post.content || '');
+    const rawContent = post.content || ''; // Raw content for edit modal
     const likesCount = post.likes_count || 0;
     const commentsCount = post.comments_count || 0;
     const sharesCount = post.shares_count || 0;
@@ -446,13 +939,37 @@ function createPostElement(post) {
                     <p>${authorRole} • ${timeAgo}</p>
                 </div>
             </div>
-            <button class="post-menu-btn">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="1"></circle>
-                    <circle cx="12" cy="5" r="1"></circle>
-                    <circle cx="12" cy="19" r="1"></circle>
-                </svg>
-            </button>
+            ${post.is_owner > 0 ? `
+            <div class="post-menu">
+                <button class="post-menu-btn" onclick="togglePostMenu(${post.id})">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="1"></circle>
+                        <circle cx="12" cy="5" r="1"></circle>
+                        <circle cx="12" cy="19" r="1"></circle>
+                    </svg>
+                </button>
+                <div class="post-menu-dropdown" id="postMenu${post.id}">
+                    <button class="post-menu-item" 
+                            data-post-id="${post.id}" 
+                            data-post-content="${escapeHtml(rawContent).replace(/"/g, '&quot;').replace(/'/g, '&#39;')}" 
+                            data-post-image="${post.image_url ? escapeHtml(post.image_url).replace(/"/g, '&quot;').replace(/'/g, '&#39;') : ''}"
+                            onclick="openEditPostModalFromButton(this)">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                        <span>Edit</span>
+                    </button>
+                    <button class="post-menu-item delete" onclick="deletePost(${post.id})">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                        <span>Delete</span>
+                    </button>
+                </div>
+            </div>
+            ` : ''}
         </div>
         
         <div class="post-content">
@@ -794,6 +1311,416 @@ document.getElementById('loadMoreBtn').addEventListener('click', () => {
         loadPosts(currentPage + 1);
     }
 });
+
+// Post menu toggle
+function togglePostMenu(postId) {
+    const menu = document.getElementById(`postMenu${postId}`);
+    const allMenus = document.querySelectorAll('.post-menu-dropdown');
+    
+    // Close all other menus
+    allMenus.forEach(m => {
+        if (m.id !== `postMenu${postId}`) {
+            m.classList.remove('show');
+        }
+    });
+    
+    // Toggle current menu
+    menu.classList.toggle('show');
+}
+
+// Close menus when clicking outside
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.post-menu')) {
+        document.querySelectorAll('.post-menu-dropdown').forEach(menu => {
+            menu.classList.remove('show');
+        });
+    }
+});
+
+// Edit Post Functions
+let editingPostId = null;
+let editingPostImageUrl = null;
+let editSelectedImage = null;
+
+function openEditPostModalFromButton(button) {
+    const postId = parseInt(button.getAttribute('data-post-id'));
+    const postContent = button.getAttribute('data-post-content') || '';
+    const imageUrl = button.getAttribute('data-post-image') || '';
+    openEditPostModal(postId, postContent, imageUrl);
+}
+
+function openEditPostModal(postId, postContent = '', imageUrl = '') {
+    editingPostId = postId;
+    
+    // Decode HTML entities in content
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = postContent;
+    const decodedContent = textarea.value;
+    
+    document.getElementById('editPostContent').value = decodedContent || '';
+    
+    // Reset image states
+    editSelectedImage = null;
+    document.getElementById('editImageInput').value = '';
+    document.getElementById('editRemoveImage').value = '0';
+    document.getElementById('editImagePreview').style.display = 'none';
+    
+    // Show current image if exists
+    const currentImageContainer = document.getElementById('editCurrentImageContainer');
+    const currentImage = document.getElementById('editCurrentImage');
+    editingPostImageUrl = imageUrl;
+    
+    if (imageUrl) {
+        currentImage.src = '../' + imageUrl;
+        currentImageContainer.style.display = 'block';
+    } else {
+        currentImageContainer.style.display = 'none';
+    }
+    
+    document.getElementById('editPostModal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    
+    // Close any open menus
+    document.querySelectorAll('.post-menu-dropdown').forEach(menu => {
+        menu.classList.remove('show');
+    });
+}
+
+function decodeHtml(html) {
+    const txt = document.createElement('textarea');
+    txt.innerHTML = html;
+    return txt.value;
+}
+
+function closeEditPostModal() {
+    document.getElementById('editPostModal').style.display = 'none';
+    document.body.style.overflow = '';
+    editingPostId = null;
+    editingPostImageUrl = null;
+    editSelectedImage = null;
+    document.getElementById('editPostContent').value = '';
+    document.getElementById('editImageInput').value = '';
+    document.getElementById('editRemoveImage').value = '0';
+    document.getElementById('editCurrentImageContainer').style.display = 'none';
+    document.getElementById('editImagePreview').style.display = 'none';
+}
+
+function removeEditImage() {
+    document.getElementById('editRemoveImage').value = '1';
+    document.getElementById('editCurrentImageContainer').style.display = 'none';
+}
+
+function removeEditNewImage() {
+    editSelectedImage = null;
+    document.getElementById('editImageInput').value = '';
+    document.getElementById('editImagePreview').style.display = 'none';
+}
+
+// Handle image selection for edit modal
+document.addEventListener('DOMContentLoaded', () => {
+    const editImageInput = document.getElementById('editImageInput');
+    if (editImageInput) {
+        editImageInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const maxSize = 5 * 1024 * 1024; // 5MB
+                const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+                
+                if (file.size > maxSize) {
+                    showAlert('Image size must be less than 5MB', 'error');
+                    e.target.value = '';
+                    return;
+                }
+                
+                if (!allowedTypes.includes(file.type)) {
+                    showAlert('Invalid image type. Please use JPEG, PNG, GIF, or WebP.', 'error');
+                    e.target.value = '';
+                    return;
+                }
+                
+                editSelectedImage = file;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    document.getElementById('editPreviewImg').src = e.target.result;
+                    document.getElementById('editImagePreview').style.display = 'block';
+                    // Hide current image container when new image is selected
+                    document.getElementById('editCurrentImageContainer').style.display = 'none';
+                    document.getElementById('editRemoveImage').value = '0';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+});
+
+async function saveEditPost() {
+    if (!editingPostId) return;
+    
+    const content = document.getElementById('editPostContent').value.trim();
+    
+    if (!content) {
+        showAlert('Post content cannot be empty', 'error');
+        return;
+    }
+    
+    if (content.length > 5000) {
+        showAlert('Post content is too long. Maximum 5000 characters.', 'error');
+        return;
+    }
+    
+    // Validate new image if selected
+    if (editSelectedImage) {
+        const maxSize = 5 * 1024 * 1024; // 5MB
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        
+        if (editSelectedImage.size > maxSize) {
+            showAlert('Image size must be less than 5MB', 'error');
+            return;
+        }
+        
+        if (!allowedTypes.includes(editSelectedImage.type)) {
+            showAlert('Invalid image type. Please use JPEG, PNG, GIF, or WebP.', 'error');
+            return;
+        }
+    }
+    
+    const saveBtn = document.getElementById('saveEditPostBtn');
+    const originalText = saveBtn.textContent;
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
+    
+    const formData = new FormData();
+    formData.append('post_id', editingPostId);
+    formData.append('content', content);
+    
+    // Add image removal flag if user wants to remove image
+    const removeImage = document.getElementById('editRemoveImage').value === '1';
+    if (removeImage) {
+        formData.append('remove_image', '1');
+    }
+    
+    // Add new image if selected
+    if (editSelectedImage) {
+        formData.append('image', editSelectedImage);
+    }
+    
+    const result = await apiRequest('../api/posts.php?action=update', {
+        method: 'POST',
+        body: formData
+    });
+    
+    saveBtn.disabled = false;
+    saveBtn.textContent = originalText;
+    
+    if (result.success) {
+        showAlert('Post updated successfully!', 'success');
+        closeEditPostModal();
+        // Reload posts to show updated content
+        loadPosts(1);
+    } else {
+        showAlert(result.message || 'Failed to update post', 'error');
+    }
+}
+
+// Delete Post Function
+async function deletePost(postId) {
+    // Close menu
+    document.querySelectorAll('.post-menu-dropdown').forEach(menu => {
+        menu.classList.remove('show');
+    });
+    
+    // Confirm deletion
+    if (!confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('post_id', postId);
+    
+    const result = await apiRequest('../api/posts.php?action=delete', {
+        method: 'POST',
+        body: formData
+    });
+    
+    if (result.success) {
+        showAlert('Post deleted successfully', 'success');
+        // Remove post from DOM
+        const postElement = document.querySelector(`[data-post-id="${postId}"]`);
+        if (postElement) {
+            postElement.style.animation = 'fadeOut 0.3s ease';
+            setTimeout(() => {
+                postElement.remove();
+                // If no posts left, reload
+                const feedContainer = document.getElementById('postsFeed');
+                if (feedContainer.children.length === 0) {
+                    loadPosts(1);
+                }
+            }, 300);
+        } else {
+            // If element not found, reload posts
+            loadPosts(1);
+        }
+    } else {
+        showAlert(result.message || 'Failed to delete post', 'error');
+    }
+}
+
+// Close edit modal on Escape key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        const editModal = document.getElementById('editPostModal');
+        if (editModal && editModal.style.display === 'block') {
+            closeEditPostModal();
+        }
+    }
+});
+
+// Sidebar Data Loading
+async function loadSidebarData() {
+    await Promise.all([
+        loadImportantNotices(),
+        loadFriendsOnline(),
+        loadUserGroups(),
+        loadUpcomingEvents(),
+        loadTeachers()
+    ]);
+}
+
+async function loadImportantNotices() {
+    const result = await apiRequest('../api/notices.php?action=get_important');
+    const container = document.getElementById('noticesList');
+    const widget = document.getElementById('noticesWidget');
+    
+    if (!result.success || !result.data || !result.data.notices || result.data.notices.length === 0) {
+        widget.style.display = 'none';
+        return;
+    }
+    
+    widget.style.display = 'block';
+    const notices = result.data.notices;
+    
+    container.innerHTML = notices.map(notice => {
+        const priorityClass = notice.priority === 'urgent' ? 'priority-urgent' : 
+                             notice.priority === 'high' ? 'priority-high' : '';
+        const timeAgo = getTimeAgo(notice.created_at);
+        return `
+            <div class="notice-item ${priorityClass}">
+                <div class="notice-title" onclick="window.location.href='notices.php?id=${notice.id}'">
+                    ${escapeHtml(notice.title)}
+                </div>
+                <div class="notice-meta">${escapeHtml(notice.posted_by || 'Admin')} • ${timeAgo}</div>
+            </div>
+        `;
+    }).join('');
+}
+
+async function loadFriendsOnline() {
+    const result = await apiRequest('../api/users.php?action=get_friends_online');
+    const container = document.getElementById('friendsList');
+    const widget = document.getElementById('friendsWidget');
+    
+    if (!result.success || !result.data || !result.data.friends || result.data.friends.length === 0) {
+        widget.style.display = 'none';
+        return;
+    }
+    
+    widget.style.display = 'block';
+    const friends = result.data.friends;
+    
+    container.innerHTML = friends.map(friend => {
+        const initial = (friend.full_name || 'U').charAt(0).toUpperCase();
+        const profileImage = friend.profile_image ? `../${friend.profile_image}` : '';
+        return `
+            <div class="user-list-item" onclick="window.location.href='profile.php?user_id=${friend.id}'">
+                <div class="avatar">
+                    ${profileImage ? `<img src="${profileImage}" alt="${escapeHtml(friend.full_name)}" onerror="this.parentElement.innerHTML='<span>${initial}</span>'">` : `<span>${initial}</span>`}
+                </div>
+                <div class="user-info">
+                    <div class="user-name">${escapeHtml(friend.full_name || 'Unknown')}</div>
+                    <div class="user-role">${escapeHtml(friend.role || '')}</div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+async function loadUserGroups() {
+    const result = await apiRequest('../api/groups.php?action=get_user_groups');
+    const container = document.getElementById('groupsList');
+    const widget = document.getElementById('groupsWidget');
+    
+    if (!result.success || !result.data || !result.data.groups || result.data.groups.length === 0) {
+        widget.style.display = 'none';
+        return;
+    }
+    
+    widget.style.display = 'block';
+    const groups = result.data.groups;
+    
+    container.innerHTML = groups.map(group => {
+        return `
+            <div class="group-item" onclick="window.location.href='groups.php?id=${group.id}'">
+                <div class="group-name">${escapeHtml(group.name || 'Unnamed Group')}</div>
+                <div class="group-meta">${group.members_count || 0} members</div>
+            </div>
+        `;
+    }).join('');
+}
+
+async function loadUpcomingEvents() {
+    const result = await apiRequest('../api/events.php?action=get_upcoming');
+    const container = document.getElementById('eventsList');
+    const widget = document.getElementById('eventsWidget');
+    
+    if (!result.success || !result.data || !result.data.events || result.data.events.length === 0) {
+        widget.style.display = 'none';
+        return;
+    }
+    
+    widget.style.display = 'block';
+    const events = result.data.events;
+    
+    container.innerHTML = events.map(event => {
+        const eventDate = new Date(event.event_date);
+        const formattedDate = eventDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        return `
+            <div class="event-item" onclick="window.location.href='events.php?id=${event.id}'">
+                <div class="event-title">${escapeHtml(event.title || 'Untitled Event')}</div>
+                <div class="event-meta">${formattedDate} • ${escapeHtml(event.location || '')}</div>
+            </div>
+        `;
+    }).join('');
+}
+
+async function loadTeachers() {
+    const result = await apiRequest('../api/users.php?action=get_teachers');
+    const container = document.getElementById('teachersList');
+    const widget = document.getElementById('teachersWidget');
+    
+    if (!result.success || !result.data || !result.data.teachers || result.data.teachers.length === 0) {
+        widget.style.display = 'none';
+        return;
+    }
+    
+    widget.style.display = 'block';
+    const teachers = result.data.teachers;
+    
+    container.innerHTML = teachers.map(teacher => {
+        const initial = (teacher.full_name || 'T').charAt(0).toUpperCase();
+        const profileImage = teacher.profile_image ? `../${teacher.profile_image}` : '';
+        return `
+            <div class="user-list-item" onclick="window.location.href='profile.php?user_id=${teacher.id}'">
+                <div class="avatar">
+                    ${profileImage ? `<img src="${profileImage}" alt="${escapeHtml(teacher.full_name)}" onerror="this.parentElement.innerHTML='<span>${initial}</span>'">` : `<span>${initial}</span>`}
+                </div>
+                <div class="user-info">
+                    <div class="user-name">${escapeHtml(teacher.full_name || 'Unknown')}</div>
+                    <div class="user-role">${escapeHtml(teacher.department || teacher.role || '')}</div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
 
 </script>
 

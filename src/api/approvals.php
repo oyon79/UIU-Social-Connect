@@ -259,14 +259,38 @@ function approveEvent($db)
 {
     $data = json_decode(file_get_contents('php://input'), true);
     $eventId = intval($data['event_id'] ?? 0);
+    $adminId = $_SESSION['user_id'];
 
-    $sql = "UPDATE events SET is_approved = 1 WHERE id = ?";
-    $result = $db->query($sql, [$eventId]);
+    if (!$eventId) {
+        echo json_encode(['success' => false, 'message' => 'Invalid event ID']);
+        return;
+    }
 
-    echo json_encode([
-        'success' => $result ? true : false,
-        'message' => $result ? 'Event approved' : 'Failed to approve event'
-    ]);
+    $sql = "UPDATE events SET is_approved = 1, approved_by = ?, approved_at = NOW() WHERE id = ?";
+    $result = $db->query($sql, [$adminId, $eventId]);
+
+    if ($result) {
+        // Get event owner
+        $eventSql = "SELECT user_id FROM events WHERE id = ?";
+        $event = $db->query($eventSql, [$eventId]);
+
+        if ($event) {
+            // Notify user about event approval
+            $notifSql = "INSERT INTO notifications (user_id, type, title, message, reference_id, reference_type, created_at) 
+                         VALUES (?, 'approval', 'Event Approved', 'Your event has been approved!', ?, 'event', NOW())";
+            $db->query($notifSql, [$event[0]['user_id'], $eventId]);
+        }
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Event approved successfully'
+        ]);
+    } else {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Failed to approve event'
+        ]);
+    }
 }
 
 function rejectEvent($db)
@@ -274,13 +298,35 @@ function rejectEvent($db)
     $data = json_decode(file_get_contents('php://input'), true);
     $eventId = intval($data['event_id'] ?? 0);
 
+    if (!$eventId) {
+        echo json_encode(['success' => false, 'message' => 'Invalid event ID']);
+        return;
+    }
+
+    // Get event owner before deleting
+    $eventSql = "SELECT user_id FROM events WHERE id = ?";
+    $event = $db->query($eventSql, [$eventId]);
+
+    // Delete event
     $sql = "DELETE FROM events WHERE id = ?";
     $result = $db->query($sql, [$eventId]);
 
-    echo json_encode([
-        'success' => $result ? true : false,
-        'message' => $result ? 'Event rejected' : 'Failed to reject event'
-    ]);
+    if ($result && $event) {
+        // Notify user about event rejection
+        $notifSql = "INSERT INTO notifications (user_id, type, title, message, reference_id, reference_type, created_at) 
+                     VALUES (?, 'rejection', 'Event Rejected', 'Your event was not approved.', ?, 'event', NOW())";
+        $db->query($notifSql, [$event[0]['user_id'], $eventId]);
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Event rejected'
+        ]);
+    } else {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Failed to reject event'
+        ]);
+    }
 }
 
 function approveJob($db)

@@ -20,9 +20,22 @@ switch ($action) {
         echo json_encode(['success' => true, 'groups' => $groups ?: []]);
         break;
 
+    case 'get_user_groups':
+        // Get groups where user is a member
+        $userId = $_SESSION['user_id'];
+        $sql = "SELECT g.*, (SELECT COUNT(*) FROM group_members WHERE group_id = g.id) as members_count
+                FROM groups g
+                INNER JOIN group_members gm ON g.id = gm.group_id
+                WHERE g.is_approved = 1 AND gm.user_id = ?
+                ORDER BY g.created_at DESC
+                LIMIT 10";
+        $groups = $db->query($sql, [$userId]);
+        echo json_encode(['success' => true, 'groups' => $groups ?: []]);
+        break;
+
     case 'create':
         $data = json_decode(file_get_contents('php://input'), true);
-        $sql = "INSERT INTO groups (name, description, created_by, is_approved, created_at) VALUES (?, ?, ?, 0, NOW())";
+        $sql = "INSERT INTO groups (name, description, creator_id, is_approved, created_at) VALUES (?, ?, ?, 0, NOW())";
         $result = $db->query($sql, [$data['name'], $data['description'], $_SESSION['user_id']]);
         echo json_encode(['success' => $result ? true : false]);
         break;

@@ -18,6 +18,9 @@ switch ($action) {
     case 'get_all':
         getAllEvents($db);
         break;
+    case 'get_upcoming':
+        getUpcomingEvents($db);
+        break;
     case 'create':
         createEvent($db);
         break;
@@ -30,11 +33,38 @@ switch ($action) {
 
 function getAllEvents($db)
 {
+    // Get all approved events (matches getUpcomingEvents but without limit)
     $sql = "SELECT e.*, 
-            (SELECT COUNT(*) FROM event_attendees WHERE event_id = e.id AND status = 'going') as attendees_count
+            (SELECT COUNT(*) FROM event_attendees WHERE event_id = e.id) as attendees_count
             FROM events e
-            WHERE e.is_approved = 1 AND e.event_date >= NOW()
-            ORDER BY e.event_date ASC";
+            WHERE e.is_approved = 1
+            ORDER BY e.event_date ASC, e.event_time ASC";
+
+    $events = $db->query($sql);
+
+    if ($events === false) {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Database query failed'
+        ]);
+        return;
+    }
+
+    echo json_encode([
+        'success' => true,
+        'events' => $events ?: []
+    ]);
+}
+
+function getUpcomingEvents($db)
+{
+    // Get upcoming events (limit to 5 for sidebar)
+    $sql = "SELECT e.*, 
+            (SELECT COUNT(*) FROM event_attendees WHERE event_id = e.id) as attendees_count
+            FROM events e
+            WHERE e.is_approved = 1 AND (e.event_date > CURDATE() OR (e.event_date = CURDATE() AND e.event_time >= TIME(NOW())))
+            ORDER BY e.event_date ASC, e.event_time ASC
+            LIMIT 5";
 
     $events = $db->query($sql);
 
@@ -51,18 +81,28 @@ function createEvent($db)
 
     $title = trim($data['title'] ?? '');
     $description = trim($data['description'] ?? '');
-    $eventDate = $data['event_date'] ?? '';
+    $eventDateTime = $data['event_date'] ?? '';
     $location = trim($data['location'] ?? '');
 
-    if (!$title || !$description || !$eventDate || !$location) {
+    if (!$title || !$description || !$eventDateTime || !$location) {
         echo json_encode(['success' => false, 'message' => 'All fields required']);
         return;
     }
 
-    $sql = "INSERT INTO events (user_id, title, description, event_date, location, is_approved, created_at) 
-            VALUES (?, ?, ?, ?, ?, 0, NOW())";
+    // Parse datetime-local format (YYYY-MM-DDTHH:mm) into separate date and time
+    $dateTimeParts = explode('T', $eventDateTime);
+    $eventDate = $dateTimeParts[0] ?? '';
+    $eventTime = isset($dateTimeParts[1]) ? $dateTimeParts[1] . ':00' : '00:00:00';
 
-    $result = $db->query($sql, [$userId, $title, $description, $eventDate, $location]);
+    if (!$eventDate) {
+        echo json_encode(['success' => false, 'message' => 'Invalid date format']);
+        return;
+    }
+
+    $sql = "INSERT INTO events (user_id, title, description, event_date, event_time, location, is_approved, created_at) 
+            VALUES (?, ?, ?, ?, ?, ?, 0, NOW())";
+
+    $result = $db->query($sql, [$userId, $title, $description, $eventDate, $eventTime, $location]);
 
     echo json_encode([
         'success' => $result ? true : false,

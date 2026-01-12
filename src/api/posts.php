@@ -22,6 +22,9 @@ switch ($action) {
     case 'get_all':
         getAllPosts($db);
         break;
+    case 'get_user_posts':
+        getUserPosts($db);
+        break;
     case 'like':
         toggleLike($db);
         break;
@@ -30,6 +33,9 @@ switch ($action) {
         break;
     case 'get_comments':
         getComments($db);
+        break;
+    case 'update':
+        updatePost($db);
         break;
     case 'delete':
         deletePost($db);
@@ -113,19 +119,48 @@ function getAllPosts($db)
                 u.role as author_role,
                 (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id) as likes_count,
                 (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comments_count,
-                (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id AND user_id = ?) as user_liked
+                (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id AND user_id = ?) as user_liked,
+                CASE WHEN p.user_id = ? THEN 1 ELSE 0 END as is_owner
             FROM posts p
             INNER JOIN users u ON p.user_id = u.id
             WHERE p.is_approved = 1
             ORDER BY p.created_at DESC
             LIMIT ? OFFSET ?";
 
-    $posts = $db->query($sql, [$userId, $limit, $offset]);
+    $posts = $db->query($sql, [$userId, $userId, $limit, $offset]);
 
     echo json_encode([
         'success' => true,
         'posts' => $posts ?: [],
         'page' => $page
+    ]);
+}
+
+function getUserPosts($db)
+{
+    $userId = intval($_GET['user_id'] ?? $_SESSION['user_id']);
+    $currentUserId = $_SESSION['user_id'];
+
+    // Get approved posts for specific user with user info and like status
+    $sql = "SELECT 
+                p.*,
+                u.full_name as author_name,
+                u.role as author_role,
+                (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id) as likes_count,
+                (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comments_count,
+                (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id AND user_id = ?) as user_liked,
+                CASE WHEN p.user_id = ? THEN 1 ELSE 0 END as is_owner
+            FROM posts p
+            INNER JOIN users u ON p.user_id = u.id
+            WHERE p.user_id = ? AND p.is_approved = 1
+            ORDER BY p.created_at DESC
+            LIMIT 50";
+
+    $posts = $db->query($sql, [$currentUserId, $currentUserId, $userId]);
+
+    echo json_encode([
+        'success' => true,
+        'posts' => $posts ?: []
     ]);
 }
 
@@ -226,6 +261,85 @@ function getComments($db)
     ]);
 }
 
+function updatePost($db)
+{
+    $postId = intval($_POST['post_id'] ?? 0);
+    $content = trim($_POST['content'] ?? '');
+    $userId = $_SESSION['user_id'];
+    $removeImage = isset($_POST['remove_image']) && $_POST['remove_image'] === '1';
+
+    if (!$postId || empty($content)) {
+        echo json_encode(['success' => false, 'message' => 'Invalid data']);
+        return;
+    }
+
+    // Check if user owns the post and get current image
+    $checkSql = "SELECT id, image_url FROM posts WHERE id = ? AND user_id = ?";
+    $post = $db->query($checkSql, [$postId, $userId]);
+
+    if (!$post || empty($post)) {
+        echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+        return;
+    }
+
+    $currentImageUrl = $post[0]['image_url'] ?? null;
+
+    // Validate content length
+    if (strlen($content) > 5000) {
+        echo json_encode(['success' => false, 'message' => 'Content too long (max 5000 characters)']);
+        return;
+    }
+
+    $imageUrl = $currentImageUrl;
+
+    // Handle image removal
+    if ($removeImage && $currentImageUrl) {
+        // Delete old image file
+        $oldImagePath = '../' . $currentImageUrl;
+        if (file_exists($oldImagePath)) {
+            @unlink($oldImagePath);
+        }
+        $imageUrl = null;
+    }
+
+    // Handle new image upload
+    if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+        // Delete old image if exists
+        if ($currentImageUrl) {
+            $oldImagePath = '../' . $currentImageUrl;
+            if (file_exists($oldImagePath)) {
+                @unlink($oldImagePath);
+            }
+        }
+
+        $uploadDir = '../assets/uploads/posts/';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0777, true);
+        }
+
+        $fileExt = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
+        $fileName = uniqid() . '.' . $fileExt;
+        $filePath = $uploadDir . $fileName;
+
+        if (move_uploaded_file($_FILES['image']['tmp_name'], $filePath)) {
+            $imageUrl = 'assets/uploads/posts/' . $fileName;
+        }
+    }
+
+    $sql = "UPDATE posts SET content = ?, image_url = ?, updated_at = NOW() WHERE id = ? AND user_id = ?";
+    $result = $db->query($sql, [$content, $imageUrl, $postId, $userId]);
+
+    if ($result) {
+        echo json_encode([
+            'success' => true,
+            'message' => 'Post updated successfully',
+            'image_url' => $imageUrl
+        ]);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Failed to update post']);
+    }
+}
+
 function deletePost($db)
 {
     $postId = intval($_POST['post_id'] ?? 0);
@@ -235,7 +349,7 @@ function deletePost($db)
     $checkSql = "SELECT id FROM posts WHERE id = ? AND user_id = ?";
     $post = $db->query($checkSql, [$postId, $userId]);
 
-    if (!$post) {
+    if (!$post || empty($post)) {
         echo json_encode(['success' => false, 'message' => 'Unauthorized']);
         return;
     }

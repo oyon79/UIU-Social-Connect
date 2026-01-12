@@ -427,18 +427,91 @@ $pageTitle = 'Approvals - Admin Panel';
         }
 
         async function loadEvents() {
-            document.getElementById('eventsList').innerHTML = `
-                <div class="empty-state">
-                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                        <line x1="16" y1="2" x2="16" y2="6"></line>
-                        <line x1="8" y1="2" x2="8" y2="6"></line>
-                    </svg>
-                    <h3>No Pending Events</h3>
-                    <p style="color: var(--gray-dark);">Event approvals will appear here</p>
-                </div>
-            `;
-            document.getElementById('eventsCount').textContent = '0';
+            try {
+                const response = await fetch('../api/approvals.php?action=get_pending_events');
+                const data = await response.json();
+
+                const container = document.getElementById('eventsList');
+                document.getElementById('eventsCount').textContent = data.events?.length || 0;
+
+                if (data.success && data.events && data.events.length > 0) {
+                    container.innerHTML = data.events.map(event => {
+                        const eventDate = new Date(event.event_date + ' ' + (event.event_time || '00:00:00'));
+                        const formattedDate = eventDate.toLocaleDateString('en-US', { 
+                            weekday: 'short', 
+                            year: 'numeric', 
+                            month: 'short', 
+                            day: 'numeric' 
+                        });
+                        const formattedTime = event.event_time ? new Date('2000-01-01 ' + event.event_time).toLocaleTimeString('en-US', { 
+                            hour: 'numeric', 
+                            minute: '2-digit' 
+                        }) : '';
+                        
+                        return `
+                        <div class="approval-card animate-slide-up">
+                            <div class="approval-header">
+                                <div class="approval-user">
+                                    <div class="avatar">
+                                        <span>${event.organizer_name ? event.organizer_name.charAt(0).toUpperCase() : 'E'}</span>
+                                    </div>
+                                    <div>
+                                        <h4>${escapeHtml(event.title || 'Untitled Event')}</h4>
+                                        <p style="color: var(--gray-dark); font-size: 0.875rem;">
+                                            ${escapeHtml(event.organizer_name || 'Unknown')} • ${getTimeAgo(event.created_at)}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="approval-actions">
+                                    <button class="btn btn-success" onclick="approveEvent(${event.id})">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                        </svg>
+                                        Approve
+                                    </button>
+                                    <button class="btn btn-danger" onclick="rejectEvent(${event.id})">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                                        </svg>
+                                        Reject
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="approval-content">
+                                <p style="margin-bottom: 0.75rem;"><strong>Description:</strong></p>
+                                <p style="margin-bottom: 1rem;">${escapeHtml(event.description || 'No description')}</p>
+                                <div style="display: flex; flex-wrap: wrap; gap: 1rem; font-size: 0.875rem; color: var(--gray-dark);">
+                                    <span>📅 ${formattedDate}${formattedTime ? ' at ' + formattedTime : ''}</span>
+                                    <span>📍 ${escapeHtml(event.location || 'TBA')}</span>
+                                    ${event.category ? `<span>🏷️ ${escapeHtml(event.category)}</span>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    }).join('');
+                } else {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                <line x1="16" y1="2" x2="16" y2="6"></line>
+                                <line x1="8" y1="2" x2="8" y2="6"></line>
+                            </svg>
+                            <h3>All Caught Up!</h3>
+                            <p style="color: var(--gray-dark);">No pending event approvals</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading events:', error);
+                document.getElementById('eventsList').innerHTML = `
+                    <div class="empty-state">
+                        <h3>Error Loading Events</h3>
+                        <p style="color: var(--gray-dark);">Please refresh the page</p>
+                    </div>
+                `;
+            }
         }
 
         async function loadJobs() {
@@ -599,6 +672,80 @@ $pageTitle = 'Approvals - Admin Panel';
                 }
             } catch (error) {
                 console.error('Reject post request failed:', error);
+                showAlert('Connection error', 'error');
+            }
+        }
+
+        async function approveEvent(eventId) {
+            if (!confirm('Approve this event?')) return;
+
+            try {
+                const response = await fetch('../api/approvals.php?action=approve_event', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        event_id: eventId
+                    })
+                });
+
+                const text = await response.text();
+                let data;
+                try {
+                    data = text ? JSON.parse(text) : {};
+                } catch (parseError) {
+                    console.error('Invalid JSON response for approve_event:', text);
+                    showAlert('Server error while approving event', 'error');
+                    return;
+                }
+
+                if (data.success) {
+                    loadEvents();
+                    showAlert('Event approved successfully', 'success');
+                } else {
+                    showAlert(data.message || 'Failed to approve event', 'error');
+                }
+            } catch (error) {
+                console.error('Approve event request failed:', error);
+                showAlert('Connection error', 'error');
+            }
+        }
+
+        async function rejectEvent(eventId) {
+            if (!confirm('Reject this event? This will delete the event.')) return;
+
+            try {
+                const response = await fetch('../api/approvals.php?action=reject_event', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        event_id: eventId
+                    })
+                });
+
+                const text = await response.text();
+                let data;
+                try {
+                    data = text ? JSON.parse(text) : {};
+                } catch (parseError) {
+                    console.error('Invalid JSON response for reject_event:', text);
+                    showAlert('Server error while rejecting event', 'error');
+                    return;
+                }
+
+                if (data.success) {
+                    loadEvents();
+                    showAlert('Event rejected', 'success');
+                } else {
+                    showAlert(data.message || 'Failed to reject event', 'error');
+                }
+            } catch (error) {
+                console.error('Reject event request failed:', error);
                 showAlert('Connection error', 'error');
             }
         }

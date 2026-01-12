@@ -43,6 +43,12 @@ switch ($action) {
     case 'get_friends':
         getFriends($db);
         break;
+    case 'get_friends_online':
+        getFriendsOnline($db);
+        break;
+    case 'get_teachers':
+        getTeachers($db);
+        break;
     default:
         echo json_encode(['success' => false, 'message' => 'Invalid action']);
 }
@@ -51,18 +57,21 @@ function getProfile($db)
 {
     $userId = intval($_GET['user_id'] ?? $_SESSION['user_id']);
 
-    $sql = "SELECT id, full_name, email, role, bio, profile_picture, cover_photo, student_id, created_at 
+    $sql = "SELECT id, full_name, email, role, bio, profile_image, cover_image, student_id, created_at 
             FROM users WHERE id = ? AND is_approved = 1";
 
     $user = $db->query($sql, [$userId]);
 
-    if ($user) {
+    if ($user && !empty($user)) {
         // Get stats
         $postsSql = "SELECT COUNT(*) as count FROM posts WHERE user_id = ? AND is_approved = 1";
-        $postsCount = $db->query($postsSql, [$userId])[0]['count'];
+        $postsResult = $db->query($postsSql, [$userId]);
+        $postsCount = $postsResult ? $postsResult[0]['count'] : 0;
 
-        $friendsSql = "SELECT COUNT(*) as count FROM friendships WHERE (user_id = ? OR friend_id = ?) AND status = 'accepted'";
-        $friendsCount = $db->query($friendsSql, [$userId, $userId])[0]['count'];
+        $friendsSql = "SELECT COUNT(*) as count FROM friendships 
+                      WHERE (user1_id = ? OR user2_id = ?)";
+        $friendsResult = $db->query($friendsSql, [$userId, $userId]);
+        $friendsCount = $friendsResult ? $friendsResult[0]['count'] : 0;
 
         $user[0]['posts_count'] = $postsCount;
         $user[0]['friends_count'] = $friendsCount;
@@ -137,9 +146,9 @@ function uploadPhoto($db)
         $dbPath = 'assets/uploads/profiles/' . $fileName;
 
         if ($type === 'profile') {
-            $sql = "UPDATE users SET profile_picture = ? WHERE id = ?";
+            $sql = "UPDATE users SET profile_image = ? WHERE id = ?";
         } else {
-            $sql = "UPDATE users SET cover_photo = ? WHERE id = ?";
+            $sql = "UPDATE users SET cover_image = ? WHERE id = ?";
         }
 
         $result = $db->query($sql, [$dbPath, $userId]);
@@ -168,7 +177,7 @@ function searchUsers($db)
         return;
     }
 
-    $sql = "SELECT id, full_name, email, role, profile_picture 
+    $sql = "SELECT id, full_name, email, role, profile_image 
             FROM users 
             WHERE id != ? 
             AND is_approved = 1 
@@ -195,24 +204,34 @@ function sendFriendRequest($db)
         return;
     }
 
-    // Check if already friends or request exists
-    $checkSql = "SELECT id FROM friendships 
-                 WHERE (user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?)";
-    $existing = $db->query($checkSql, [$userId, $friendId, $friendId, $userId]);
+    // Check if already friends
+    $checkFriendshipSql = "SELECT id FROM friendships 
+                          WHERE (user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)";
+    $existingFriendship = $db->query($checkFriendshipSql, [$userId, $friendId, $friendId, $userId]);
 
-    if ($existing) {
+    if ($existingFriendship && !empty($existingFriendship)) {
+        echo json_encode(['success' => false, 'message' => 'Already friends']);
+        return;
+    }
+
+    // Check if request already exists
+    $checkRequestSql = "SELECT id FROM friend_requests 
+                       WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?)";
+    $existingRequest = $db->query($checkRequestSql, [$userId, $friendId, $friendId, $userId]);
+
+    if ($existingRequest && !empty($existingRequest)) {
         echo json_encode(['success' => false, 'message' => 'Request already exists']);
         return;
     }
 
-    $sql = "INSERT INTO friendships (user_id, friend_id, status, created_at) VALUES (?, ?, 'pending', NOW())";
+    $sql = "INSERT INTO friend_requests (sender_id, receiver_id, status, created_at) VALUES (?, ?, 'pending', NOW())";
     $result = $db->query($sql, [$userId, $friendId]);
 
     if ($result) {
         // Create notification
-        $notifSql = "INSERT INTO notifications (user_id, type, content, related_id, created_at) 
-                     VALUES (?, 'friend_request', 'sent you a friend request', ?, NOW())";
-        $db->query($notifSql, [$friendId, $userId]);
+        $notifSql = "INSERT INTO notifications (user_id, type, title, message, reference_id, reference_type, created_at) 
+                     VALUES (?, 'friend_request', 'New Friend Request', ?, ?, 'user', NOW())";
+        $db->query($notifSql, [$friendId, $_SESSION['user_name'] . ' sent you a friend request', $userId]);
 
         echo json_encode(['success' => true, 'message' => 'Friend request sent']);
     } else {
@@ -226,20 +245,50 @@ function acceptFriendRequest($db)
     $data = json_decode(file_get_contents('php://input'), true);
     $friendId = intval($data['friend_id'] ?? 0);
 
-    // Update the pending request to accepted
-    $sql = "UPDATE friendships SET status = 'accepted' 
-            WHERE user_id = ? AND friend_id = ? AND status = 'pending'";
-    $result = $db->query($sql, [$friendId, $userId]);
+    if (!$friendId) {
+        echo json_encode(['success' => false, 'message' => 'Invalid user']);
+        return;
+    }
 
-    if ($result) {
-        // Create notification
-        $notifSql = "INSERT INTO notifications (user_id, type, content, related_id, created_at) 
-                     VALUES (?, 'friend_accept', 'accepted your friend request', ?, NOW())";
-        $db->query($notifSql, [$friendId, $userId]);
+    $conn = $db->getConnection();
+    
+    // Start transaction
+    $conn->begin_transaction();
 
-        echo json_encode(['success' => true, 'message' => 'Friend request accepted']);
-    } else {
-        echo json_encode(['success' => false, 'message' => 'Failed to accept request']);
+    try {
+        // Update the pending request to accepted
+        $updateSql = "UPDATE friend_requests SET status = 'accepted', updated_at = NOW() 
+                     WHERE sender_id = ? AND receiver_id = ? AND status = 'pending'";
+        $updateResult = $db->query($updateSql, [$friendId, $userId]);
+
+        if ($updateResult) {
+            // Create friendship record (ensure user1_id < user2_id for consistency)
+            $user1Id = min($userId, $friendId);
+            $user2Id = max($userId, $friendId);
+            
+            // Check if friendship already exists
+            $checkSql = "SELECT id FROM friendships WHERE (user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)";
+            $existing = $db->query($checkSql, [$user1Id, $user2Id, $user2Id, $user1Id]);
+            
+            if (!$existing || empty($existing)) {
+                $friendshipSql = "INSERT INTO friendships (user1_id, user2_id, created_at) VALUES (?, ?, NOW())";
+                $db->query($friendshipSql, [$user1Id, $user2Id]);
+            }
+
+            // Create notification
+            $notifSql = "INSERT INTO notifications (user_id, type, title, message, reference_id, reference_type, created_at) 
+                        VALUES (?, 'friend_request', 'Friend Request Accepted', ?, ?, 'user', NOW())";
+            $db->query($notifSql, [$friendId, ($_SESSION['user_name'] ?? 'Someone') . ' accepted your friend request', $userId]);
+
+            $conn->commit();
+            echo json_encode(['success' => true, 'message' => 'Friend request accepted']);
+        } else {
+            $conn->rollback();
+            echo json_encode(['success' => false, 'message' => 'Failed to accept request']);
+        }
+    } catch (Exception $e) {
+        $conn->rollback();
+        echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
     }
 }
 
@@ -249,7 +298,8 @@ function rejectFriendRequest($db)
     $data = json_decode(file_get_contents('php://input'), true);
     $friendId = intval($data['friend_id'] ?? 0);
 
-    $sql = "DELETE FROM friendships WHERE user_id = ? AND friend_id = ? AND status = 'pending'";
+    $sql = "UPDATE friend_requests SET status = 'rejected', updated_at = NOW() 
+           WHERE sender_id = ? AND receiver_id = ? AND status = 'pending'";
     $result = $db->query($sql, [$friendId, $userId]);
 
     echo json_encode([
@@ -265,7 +315,7 @@ function unfriend($db)
     $friendId = intval($data['friend_id'] ?? 0);
 
     $sql = "DELETE FROM friendships 
-            WHERE (user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?)";
+            WHERE (user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)";
     $result = $db->query($sql, [$userId, $friendId, $friendId, $userId]);
 
     echo json_encode([
@@ -278,13 +328,13 @@ function getFriends($db)
 {
     $userId = intval($_GET['user_id'] ?? $_SESSION['user_id']);
 
-    $sql = "SELECT u.id, u.full_name, u.email, u.role, u.profile_picture
+    $sql = "SELECT u.id, u.full_name, u.email, u.role, u.profile_image
             FROM users u
             INNER JOIN friendships f ON (
-                (f.user_id = ? AND f.friend_id = u.id) OR 
-                (f.friend_id = ? AND f.user_id = u.id)
+                (f.user1_id = ? AND f.user2_id = u.id) OR 
+                (f.user2_id = ? AND f.user1_id = u.id)
             )
-            WHERE f.status = 'accepted' AND u.is_approved = 1
+            WHERE u.is_approved = 1
             ORDER BY u.full_name ASC";
 
     $friends = $db->query($sql, [$userId, $userId]);
@@ -292,5 +342,45 @@ function getFriends($db)
     echo json_encode([
         'success' => true,
         'friends' => $friends ?: []
+    ]);
+}
+
+function getFriendsOnline($db)
+{
+    $userId = $_SESSION['user_id'];
+
+    // Get friends (limit to 10 for sidebar)
+    $sql = "SELECT u.id, u.full_name, u.role, u.profile_image
+            FROM users u
+            INNER JOIN friendships f ON (
+                (f.user1_id = ? AND f.user2_id = u.id) OR 
+                (f.user2_id = ? AND f.user1_id = u.id)
+            )
+            WHERE u.is_approved = 1 AND u.is_active = 1
+            ORDER BY u.full_name ASC
+            LIMIT 10";
+
+    $friends = $db->query($sql, [$userId, $userId]);
+
+    echo json_encode([
+        'success' => true,
+        'friends' => $friends ?: []
+    ]);
+}
+
+function getTeachers($db)
+{
+    // Get faculty/teachers (limit to 10 for sidebar)
+    $sql = "SELECT id, full_name, role, profile_image, department
+            FROM users
+            WHERE is_approved = 1 AND is_active = 1 AND role = 'Faculty'
+            ORDER BY full_name ASC
+            LIMIT 10";
+
+    $teachers = $db->query($sql);
+
+    echo json_encode([
+        'success' => true,
+        'teachers' => $teachers ?: []
     ]);
 }

@@ -86,7 +86,7 @@ require_once '../includes/header.php';
         </div>
         <div class="modal-footer">
             <button class="btn btn-secondary" onclick="closeCreateModal()">Cancel</button>
-            <button class="btn btn-primary" onclick="createEvent()">Create Event</button>
+            <button class="btn btn-primary" onclick="submitEvent()">Create Event</button>
         </div>
     </div>
 </div>
@@ -99,10 +99,28 @@ require_once '../includes/header.php';
             const response = await fetch('../api/events.php?action=get_all');
             const data = await response.json();
             
+            console.log('Events API Response:', data); // Debug log
+            
             const grid = document.getElementById('eventsGrid');
             
             if (data.success && data.events && data.events.length > 0) {
-                grid.innerHTML = data.events.map(event => `
+                grid.innerHTML = data.events.map(event => {
+                    // Format date and time
+                    const eventDate = new Date(event.event_date + ' ' + (event.event_time || '00:00:00'));
+                    const formattedDate = eventDate.toLocaleDateString('en-US', { 
+                        weekday: 'short', 
+                        year: 'numeric', 
+                        month: 'short', 
+                        day: 'numeric' 
+                    });
+                    const formattedTime = event.event_time ? 
+                        new Date('2000-01-01 ' + event.event_time).toLocaleTimeString('en-US', { 
+                            hour: 'numeric', 
+                            minute: '2-digit',
+                            hour12: true 
+                        }) : '';
+                    
+                    return `
                     <div class="event-card animate-scale-in">
                         <div class="event-image"></div>
                         <div class="event-content">
@@ -112,7 +130,7 @@ require_once '../includes/header.php';
                                     <line x1="16" y1="2" x2="16" y2="6"></line>
                                     <line x1="8" y1="2" x2="8" y2="6"></line>
                                 </svg>
-                                ${new Date(event.event_date).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
+                                ${formattedDate}${formattedTime ? ' at ' + formattedTime : ''}
                             </div>
                             <h3 class="event-title">${escapeHtml(event.title)}</h3>
                             <p style="color: var(--gray-dark); margin-bottom: 1rem;">${escapeHtml(event.description)}</p>
@@ -131,8 +149,10 @@ require_once '../includes/header.php';
                             </div>
                         </div>
                     </div>
-                `).join('');
+                `;
+                }).join('');
             } else {
+                console.log('No events found. Data:', data); // Debug log
                 grid.innerHTML = `
                     <div style="grid-column: 1/-1; text-align: center; padding: 3rem;">
                         <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-bottom: 1rem; color: var(--gray-dark);">
@@ -142,11 +162,20 @@ require_once '../includes/header.php';
                         </svg>
                         <h3>No Events Yet</h3>
                         <p style="color: var(--gray-dark);">Be the first to create an event!</p>
+                        ${!data.success ? `<p style="color: var(--error); margin-top: 1rem;">Error: ${data.message || 'Failed to load events'}</p>` : ''}
                     </div>
                 `;
             }
         } catch (error) {
-            console.error('Error:', error);
+            console.error('Error loading events:', error);
+            const grid = document.getElementById('eventsGrid');
+            grid.innerHTML = `
+                <div style="grid-column: 1/-1; text-align: center; padding: 3rem;">
+                    <h3>Error Loading Events</h3>
+                    <p style="color: var(--error);">${error.message}</p>
+                    <button class="btn btn-primary" onclick="loadEvents()" style="margin-top: 1rem;">Retry</button>
+                </div>
+            `;
         }
     }
 
@@ -158,7 +187,7 @@ require_once '../includes/header.php';
         document.getElementById('createEventModal').classList.remove('active');
     }
 
-    async function createEvent() {
+    async function submitEvent() {
         const title = document.getElementById('eventTitle').value.trim();
         const description = document.getElementById('eventDescription').value.trim();
         const eventDate = document.getElementById('eventDate').value;

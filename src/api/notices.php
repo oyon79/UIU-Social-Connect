@@ -20,6 +20,24 @@ switch ($action) {
         echo json_encode(['success' => true, 'notices' => $notices ?: []]);
         break;
 
+    case 'get_important':
+        // Get important notices (high or urgent priority)
+        $sql = "SELECT n.*, u.full_name as posted_by 
+                FROM notices n 
+                INNER JOIN users u ON n.user_id = u.id 
+                WHERE n.is_approved = 1 AND n.priority IN ('high', 'urgent')
+                ORDER BY 
+                    CASE n.priority 
+                        WHEN 'urgent' THEN 1 
+                        WHEN 'high' THEN 2 
+                        ELSE 3 
+                    END,
+                    n.created_at DESC
+                LIMIT 5";
+        $notices = $db->query($sql);
+        echo json_encode(['success' => true, 'notices' => $notices ?: []]);
+        break;
+
     case 'create':
         $data = json_decode(file_get_contents('php://input'), true);
         $sql = "INSERT INTO notices (user_id, title, content, priority, is_approved, created_at) VALUES (?, ?, ?, ?, 0, NOW())";
