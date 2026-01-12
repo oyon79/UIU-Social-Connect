@@ -28,6 +28,9 @@ switch ($action) {
     case 'get_pending_jobs':
         getPendingJobs($db);
         break;
+    case 'get_pending_notices':
+        getPendingNotices($db);
+        break;
     case 'approve_user':
         approveUser($db);
         break;
@@ -51,6 +54,12 @@ switch ($action) {
         break;
     case 'reject_job':
         rejectJob($db);
+        break;
+    case 'approve_notice':
+        approveNotice($db);
+        break;
+    case 'reject_notice':
+        rejectNotice($db);
         break;
     default:
         echo json_encode(['success' => false, 'message' => 'Invalid action']);
@@ -117,6 +126,22 @@ function getPendingJobs($db)
     echo json_encode([
         'success' => true,
         'jobs' => $jobs ?: []
+    ]);
+}
+
+function getPendingNotices($db)
+{
+    $sql = "SELECT n.*, u.full_name as poster_name
+            FROM notices n
+            INNER JOIN users u ON n.user_id = u.id
+            WHERE n.is_approved = 0
+            ORDER BY n.created_at DESC";
+
+    $notices = $db->query($sql);
+
+    echo json_encode([
+        'success' => true,
+        'notices' => $notices ?: []
     ]);
 }
 
@@ -333,14 +358,38 @@ function approveJob($db)
 {
     $data = json_decode(file_get_contents('php://input'), true);
     $jobId = intval($data['job_id'] ?? 0);
+    $adminId = $_SESSION['user_id'];
 
-    $sql = "UPDATE jobs SET is_approved = 1 WHERE id = ?";
-    $result = $db->query($sql, [$jobId]);
+    if (!$jobId) {
+        echo json_encode(['success' => false, 'message' => 'Invalid job ID']);
+        return;
+    }
 
-    echo json_encode([
-        'success' => $result ? true : false,
-        'message' => $result ? 'Job approved' : 'Failed to approve job'
-    ]);
+    $sql = "UPDATE jobs SET is_approved = 1, approved_by = ?, approved_at = NOW() WHERE id = ?";
+    $result = $db->query($sql, [$adminId, $jobId]);
+
+    if ($result) {
+        // Get job owner
+        $jobSql = "SELECT user_id FROM jobs WHERE id = ?";
+        $job = $db->query($jobSql, [$jobId]);
+
+        if ($job) {
+            // Notify user about job approval
+            $notifSql = "INSERT INTO notifications (user_id, type, title, message, reference_id, reference_type, created_at) 
+                         VALUES (?, 'approval', 'Job Approved', 'Your job posting has been approved!', ?, 'job', NOW())";
+            $db->query($notifSql, [$job[0]['user_id'], $jobId]);
+        }
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Job approved successfully'
+        ]);
+    } else {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Failed to approve job'
+        ]);
+    }
 }
 
 function rejectJob($db)
@@ -348,11 +397,107 @@ function rejectJob($db)
     $data = json_decode(file_get_contents('php://input'), true);
     $jobId = intval($data['job_id'] ?? 0);
 
+    if (!$jobId) {
+        echo json_encode(['success' => false, 'message' => 'Invalid job ID']);
+        return;
+    }
+
+    // Get job owner before deleting
+    $jobSql = "SELECT user_id FROM jobs WHERE id = ?";
+    $job = $db->query($jobSql, [$jobId]);
+
+    // Delete job
     $sql = "DELETE FROM jobs WHERE id = ?";
     $result = $db->query($sql, [$jobId]);
 
-    echo json_encode([
-        'success' => $result ? true : false,
-        'message' => $result ? 'Job rejected' : 'Failed to reject job'
-    ]);
+    if ($result && $job) {
+        // Notify user about job rejection
+        $notifSql = "INSERT INTO notifications (user_id, type, title, message, reference_id, reference_type, created_at) 
+                     VALUES (?, 'rejection', 'Job Rejected', 'Your job posting was not approved.', ?, 'job', NOW())";
+        $db->query($notifSql, [$job[0]['user_id'], $jobId]);
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Job rejected'
+        ]);
+    } else {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Failed to reject job'
+        ]);
+    }
+}
+
+function approveNotice($db)
+{
+    $data = json_decode(file_get_contents('php://input'), true);
+    $noticeId = intval($data['notice_id'] ?? 0);
+    $adminId = $_SESSION['user_id'];
+
+    if (!$noticeId) {
+        echo json_encode(['success' => false, 'message' => 'Invalid notice ID']);
+        return;
+    }
+
+    $sql = "UPDATE notices SET is_approved = 1, approved_by = ?, approved_at = NOW() WHERE id = ?";
+    $result = $db->query($sql, [$adminId, $noticeId]);
+
+    if ($result) {
+        // Get notice owner
+        $noticeSql = "SELECT user_id FROM notices WHERE id = ?";
+        $notice = $db->query($noticeSql, [$noticeId]);
+
+        if ($notice) {
+            // Notify user about notice approval
+            $notifSql = "INSERT INTO notifications (user_id, type, title, message, reference_id, reference_type, created_at) 
+                         VALUES (?, 'approval', 'Notice Approved', 'Your notice has been approved!', ?, 'notice', NOW())";
+            $db->query($notifSql, [$notice[0]['user_id'], $noticeId]);
+        }
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Notice approved successfully'
+        ]);
+    } else {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Failed to approve notice'
+        ]);
+    }
+}
+
+function rejectNotice($db)
+{
+    $data = json_decode(file_get_contents('php://input'), true);
+    $noticeId = intval($data['notice_id'] ?? 0);
+
+    if (!$noticeId) {
+        echo json_encode(['success' => false, 'message' => 'Invalid notice ID']);
+        return;
+    }
+
+    // Get notice owner before deleting
+    $noticeSql = "SELECT user_id FROM notices WHERE id = ?";
+    $notice = $db->query($noticeSql, [$noticeId]);
+
+    // Delete notice
+    $sql = "DELETE FROM notices WHERE id = ?";
+    $result = $db->query($sql, [$noticeId]);
+
+    if ($result && $notice) {
+        // Notify user about notice rejection
+        $notifSql = "INSERT INTO notifications (user_id, type, title, message, reference_id, reference_type, created_at) 
+                     VALUES (?, 'rejection', 'Notice Rejected', 'Your notice was not approved.', ?, 'notice', NOW())";
+        $db->query($notifSql, [$notice[0]['user_id'], $noticeId]);
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Notice rejected'
+        ]);
+    } else {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Failed to reject notice'
+        ]);
+    }
 }

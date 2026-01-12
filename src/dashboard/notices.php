@@ -94,29 +94,48 @@ require_once '../includes/header.php';
             const response = await fetch('../api/notices.php?action=get_all');
             const data = await response.json();
             
+            console.log('Notices API Response:', data); // Debug log
+            
             const list = document.getElementById('noticesList');
             
             if (data.success && data.notices && data.notices.length > 0) {
-                list.innerHTML = data.notices.map(notice => `
-                    <div class="notice-card ${notice.priority} animate-slide-up">
-                        <span class="notice-priority ${notice.priority}">${notice.priority.toUpperCase()}</span>
-                        <h3 style="margin-bottom: 0.75rem;">${escapeHtml(notice.title)}</h3>
-                        <p style="color: var(--gray-dark); margin-bottom: 1rem;">${escapeHtml(notice.content)}</p>
+                list.innerHTML = data.notices.map(notice => {
+                    const priorityClass = notice.priority === 'urgent' ? 'urgent' : 
+                                        notice.priority === 'high' ? 'high' : 'normal';
+                    return `
+                    <div class="notice-card ${priorityClass} animate-slide-up">
+                        <span class="notice-priority ${priorityClass}">${(notice.priority || 'normal').toUpperCase()}</span>
+                        <h3 style="margin-bottom: 0.75rem;">${escapeHtml(notice.title || 'Untitled Notice')}</h3>
+                        <p style="color: var(--gray-dark); margin-bottom: 1rem;">${escapeHtml(notice.content || 'No content')}</p>
                         <div style="font-size: 0.875rem; color: var(--gray-dark);">
-                            Posted by ${escapeHtml(notice.posted_by)} • ${getTimeAgo(notice.created_at)}
+                            Posted by ${escapeHtml(notice.posted_by || 'Admin')} • ${getTimeAgo(notice.created_at)}
                         </div>
                     </div>
-                `).join('');
+                `;
+                }).join('');
             } else {
+                console.log('No notices found. Data:', data); // Debug log
                 list.innerHTML = `
                     <div class="text-center" style="padding: 3rem;">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-bottom: 1rem; color: var(--gray-dark);">
+                            <path d="M11 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-5m-1.414-9.414a2 2 0 1 1 2.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                        </svg>
                         <h3>No Notices</h3>
                         <p style="color: var(--gray-dark);">No announcements at the moment</p>
+                        ${!data.success ? `<p style="color: var(--error); margin-top: 1rem;">Error: ${data.message || 'Failed to load notices'}</p>` : ''}
                     </div>
                 `;
             }
         } catch (error) {
-            console.error('Error:', error);
+            console.error('Error loading notices:', error);
+            const list = document.getElementById('noticesList');
+            list.innerHTML = `
+                <div class="text-center" style="padding: 3rem;">
+                    <h3>Error Loading Notices</h3>
+                    <p style="color: var(--error);">${error.message}</p>
+                    <button class="btn btn-primary" onclick="loadNotices()" style="margin-top: 1rem;">Retry</button>
+                </div>
+            `;
         }
     }
 
@@ -151,9 +170,11 @@ require_once '../includes/header.php';
                 alert('Notice posted! Waiting for admin approval.');
                 document.getElementById('createNoticeForm').reset();
                 loadNotices();
+            } else {
+                alert(data.message || 'Failed to post notice');
             }
         } catch (error) {
-            alert('Connection error');
+            alert('Connection error. Please try again.');
         }
     }
 

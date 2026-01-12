@@ -127,16 +127,36 @@ function rsvpEvent($db)
     $checkSql = "SELECT id FROM event_attendees WHERE event_id = ? AND user_id = ?";
     $existing = $db->query($checkSql, [$eventId, $userId]);
 
-    if ($existing) {
-        $sql = "UPDATE event_attendees SET status = ? WHERE event_id = ? AND user_id = ?";
-        $result = $db->query($sql, [$status, $eventId, $userId]);
+    if ($existing && !empty($existing)) {
+        // User already registered - remove them (toggle off)
+        $sql = "DELETE FROM event_attendees WHERE event_id = ? AND user_id = ?";
+        $result = $db->query($sql, [$eventId, $userId]);
+        $message = 'RSVP removed';
+        $isGoing = false;
     } else {
-        $sql = "INSERT INTO event_attendees (event_id, user_id, status, created_at) VALUES (?, ?, ?, NOW())";
-        $result = $db->query($sql, [$eventId, $userId, $status]);
+        // User not registered - add them
+        $sql = "INSERT INTO event_attendees (event_id, user_id, registered_at) VALUES (?, ?, NOW())";
+        $result = $db->query($sql, [$eventId, $userId]);
+        $message = $status === 'going' ? 'You\'re going to this event!' : 'Marked as interested!';
+        $isGoing = true;
     }
 
-    echo json_encode([
-        'success' => $result ? true : false,
-        'message' => $result ? 'RSVP updated' : 'Failed to RSVP'
-    ]);
+    if ($result !== false) {
+        // Get updated attendee count
+        $countSql = "SELECT COUNT(*) as count FROM event_attendees WHERE event_id = ?";
+        $countResult = $db->query($countSql, [$eventId]);
+        $attendeesCount = $countResult && !empty($countResult) ? $countResult[0]['count'] : 0;
+
+        echo json_encode([
+            'success' => true,
+            'message' => $message,
+            'is_going' => $isGoing,
+            'attendees_count' => $attendeesCount
+        ]);
+    } else {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Failed to update RSVP'
+        ]);
+    }
 }

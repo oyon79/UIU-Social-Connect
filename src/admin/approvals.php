@@ -241,6 +241,10 @@ $pageTitle = 'Approvals - Admin Panel';
                 Jobs
                 <span class="tab-badge" id="jobsCount">0</span>
             </button>
+            <button class="tab" onclick="switchTab('notices')">
+                Notices
+                <span class="tab-badge" id="noticesCount">0</span>
+            </button>
         </div>
 
         <!-- Tab Contents -->
@@ -279,6 +283,15 @@ $pageTitle = 'Approvals - Admin Panel';
                 </div>
             </div>
         </div>
+
+        <div id="noticesTab" class="tab-content">
+            <div id="noticesList">
+                <div class="text-center" style="padding: 3rem;">
+                    <div class="spinner"></div>
+                    <p style="margin-top: 1rem; color: var(--gray-dark);">Loading notices...</p>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -290,6 +303,7 @@ $pageTitle = 'Approvals - Admin Panel';
             loadPosts();
             loadEvents();
             loadJobs();
+            loadNotices();
         });
 
         function switchTab(tab) {
@@ -515,17 +529,86 @@ $pageTitle = 'Approvals - Admin Panel';
         }
 
         async function loadJobs() {
-            document.getElementById('jobsList').innerHTML = `
-                <div class="empty-state">
-                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
-                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
-                    </svg>
-                    <h3>No Pending Jobs</h3>
-                    <p style="color: var(--gray-dark);">Job approvals will appear here</p>
-                </div>
-            `;
-            document.getElementById('jobsCount').textContent = '0';
+            try {
+                const response = await fetch('../api/approvals.php?action=get_pending_jobs');
+                const data = await response.json();
+
+                const container = document.getElementById('jobsList');
+                document.getElementById('jobsCount').textContent = data.jobs?.length || 0;
+
+                if (data.success && data.jobs && data.jobs.length > 0) {
+                    container.innerHTML = data.jobs.map(job => {
+                        const deadlineDate = job.deadline ? new Date(job.deadline).toLocaleDateString('en-US', { 
+                            year: 'numeric', 
+                            month: 'short', 
+                            day: 'numeric' 
+                        }) : 'Not specified';
+                        
+                        return `
+                        <div class="approval-card animate-slide-up">
+                            <div class="approval-header">
+                                <div class="approval-user">
+                                    <div class="avatar">
+                                        <span>${job.poster_name ? job.poster_name.charAt(0).toUpperCase() : 'J'}</span>
+                                    </div>
+                                    <div>
+                                        <h4>${escapeHtml(job.title || 'Untitled Job')}</h4>
+                                        <p style="color: var(--gray-dark); font-size: 0.875rem;">
+                                            ${escapeHtml(job.poster_name || 'Unknown')} • ${getTimeAgo(job.created_at)}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="approval-actions">
+                                    <button class="btn btn-success" onclick="approveJob(${job.id})">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                        </svg>
+                                        Approve
+                                    </button>
+                                    <button class="btn btn-danger" onclick="rejectJob(${job.id})">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                                        </svg>
+                                        Reject
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="approval-content">
+                                <p style="margin-bottom: 0.75rem;"><strong>Company:</strong> ${escapeHtml(job.company || 'N/A')}</p>
+                                <p style="margin-bottom: 0.75rem;"><strong>Description:</strong></p>
+                                <p style="margin-bottom: 1rem;">${escapeHtml(job.description || 'No description')}</p>
+                                <div style="display: flex; flex-wrap: wrap; gap: 1rem; font-size: 0.875rem; color: var(--gray-dark);">
+                                    <span>💼 ${escapeHtml(job.job_type || 'N/A')}</span>
+                                    <span>📍 ${escapeHtml(job.location || 'TBA')}</span>
+                                    ${job.deadline ? `<span>📅 Deadline: ${deadlineDate}</span>` : ''}
+                                    ${job.salary_range ? `<span>💰 ${escapeHtml(job.salary_range)}</span>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    }).join('');
+                } else {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                            </svg>
+                            <h3>All Caught Up!</h3>
+                            <p style="color: var(--gray-dark);">No pending job approvals</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading jobs:', error);
+                document.getElementById('jobsList').innerHTML = `
+                    <div class="empty-state">
+                        <h3>Error Loading Jobs</h3>
+                        <p style="color: var(--gray-dark);">Please refresh the page</p>
+                    </div>
+                `;
+            }
         }
 
         async function approveUser(userId) {
@@ -750,6 +833,80 @@ $pageTitle = 'Approvals - Admin Panel';
             }
         }
 
+        async function approveJob(jobId) {
+            if (!confirm('Approve this job?')) return;
+
+            try {
+                const response = await fetch('../api/approvals.php?action=approve_job', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        job_id: jobId
+                    })
+                });
+
+                const text = await response.text();
+                let data;
+                try {
+                    data = text ? JSON.parse(text) : {};
+                } catch (parseError) {
+                    console.error('Invalid JSON response for approve_job:', text);
+                    showAlert('Server error while approving job', 'error');
+                    return;
+                }
+
+                if (data.success) {
+                    loadJobs();
+                    showAlert('Job approved successfully', 'success');
+                } else {
+                    showAlert(data.message || 'Failed to approve job', 'error');
+                }
+            } catch (error) {
+                console.error('Approve job request failed:', error);
+                showAlert('Connection error', 'error');
+            }
+        }
+
+        async function rejectJob(jobId) {
+            if (!confirm('Reject this job? This will delete the job posting.')) return;
+
+            try {
+                const response = await fetch('../api/approvals.php?action=reject_job', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        job_id: jobId
+                    })
+                });
+
+                const text = await response.text();
+                let data;
+                try {
+                    data = text ? JSON.parse(text) : {};
+                } catch (parseError) {
+                    console.error('Invalid JSON response for reject_job:', text);
+                    showAlert('Server error while rejecting job', 'error');
+                    return;
+                }
+
+                if (data.success) {
+                    loadJobs();
+                    showAlert('Job rejected', 'success');
+                } else {
+                    showAlert(data.message || 'Failed to reject job', 'error');
+                }
+            } catch (error) {
+                console.error('Reject job request failed:', error);
+                showAlert('Connection error', 'error');
+            }
+        }
+
         function getTimeAgo(timestamp) {
             const now = new Date();
             const postTime = new Date(timestamp);
@@ -760,6 +917,159 @@ $pageTitle = 'Approvals - Admin Panel';
             if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
             if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
             return postTime.toLocaleDateString();
+        }
+
+        async function loadNotices() {
+            try {
+                const response = await fetch('../api/approvals.php?action=get_pending_notices');
+                const data = await response.json();
+
+                const container = document.getElementById('noticesList');
+                document.getElementById('noticesCount').textContent = data.notices?.length || 0;
+
+                if (data.success && data.notices && data.notices.length > 0) {
+                    container.innerHTML = data.notices.map(notice => {
+                        const priorityClass = notice.priority === 'urgent' ? 'urgent' : 
+                                           notice.priority === 'high' ? 'high' : 'normal';
+                        const priorityColor = notice.priority === 'urgent' ? 'var(--error)' : 
+                                            notice.priority === 'high' ? 'var(--warning)' : '#3B82F6';
+                        
+                        return `
+                        <div class="approval-card animate-slide-up" style="border-left: 4px solid ${priorityColor};">
+                            <div class="approval-header">
+                                <div class="approval-user">
+                                    <div class="avatar">
+                                        <span>${notice.poster_name ? notice.poster_name.charAt(0).toUpperCase() : 'N'}</span>
+                                    </div>
+                                    <div>
+                                        <h4>${escapeHtml(notice.title || 'Untitled Notice')}</h4>
+                                        <p style="color: var(--gray-dark); font-size: 0.875rem;">
+                                            ${escapeHtml(notice.poster_name || 'Unknown')} • ${getTimeAgo(notice.created_at)}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="approval-actions">
+                                    <button class="btn btn-success" onclick="approveNotice(${notice.id})">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                        </svg>
+                                        Approve
+                                    </button>
+                                    <button class="btn btn-danger" onclick="rejectNotice(${notice.id})">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                                        </svg>
+                                        Reject
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="approval-content">
+                                <p style="margin-bottom: 0.75rem;">
+                                    <span style="padding: 0.375rem 0.875rem; border-radius: 20px; font-size: 0.8125rem; font-weight: 600; background: ${priorityColor === 'var(--error)' ? '#FEE2E2' : priorityColor === 'var(--warning)' ? '#FFFBEB' : '#EFF6FF'}; color: ${priorityColor};">
+                                        ${(notice.priority || 'normal').toUpperCase()}
+                                    </span>
+                                </p>
+                                <p style="margin-bottom: 1rem;">${escapeHtml(notice.content || 'No content')}</p>
+                                ${notice.category ? `<p style="font-size: 0.875rem; color: var(--gray-dark);">Category: ${escapeHtml(notice.category)}</p>` : ''}
+                            </div>
+                        </div>
+                    `;
+                    }).join('');
+                } else {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M11 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-5m-1.414-9.414a2 2 0 1 1 2.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                            </svg>
+                            <h3>All Caught Up!</h3>
+                            <p style="color: var(--gray-dark);">No pending notice approvals</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading notices:', error);
+                document.getElementById('noticesList').innerHTML = `
+                    <div class="empty-state">
+                        <h3>Error Loading Notices</h3>
+                        <p style="color: var(--gray-dark);">Please refresh the page</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function approveNotice(noticeId) {
+            if (!confirm('Approve this notice?')) return;
+
+            try {
+                const response = await fetch('../api/approvals.php?action=approve_notice', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        notice_id: noticeId
+                    })
+                });
+
+                const text = await response.text();
+                let data;
+                try {
+                    data = text ? JSON.parse(text) : {};
+                } catch (parseError) {
+                    console.error('Invalid JSON response for approve_notice:', text);
+                    showAlert('Server error while approving notice', 'error');
+                    return;
+                }
+
+                if (data.success) {
+                    loadNotices();
+                    showAlert('Notice approved successfully', 'success');
+                } else {
+                    showAlert(data.message || 'Failed to approve notice', 'error');
+                }
+            } catch (error) {
+                console.error('Approve notice request failed:', error);
+                showAlert('Connection error', 'error');
+            }
+        }
+
+        async function rejectNotice(noticeId) {
+            if (!confirm('Reject this notice? This will delete the notice.')) return;
+
+            try {
+                const response = await fetch('../api/approvals.php?action=reject_notice', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        notice_id: noticeId
+                    })
+                });
+
+                const text = await response.text();
+                let data;
+                try {
+                    data = text ? JSON.parse(text) : {};
+                } catch (parseError) {
+                    console.error('Invalid JSON response for reject_notice:', text);
+                    showAlert('Server error while rejecting notice', 'error');
+                    return;
+                }
+
+                if (data.success) {
+                    loadNotices();
+                    showAlert('Notice rejected', 'success');
+                } else {
+                    showAlert(data.message || 'Failed to reject notice', 'error');
+                }
+            } catch (error) {
+                console.error('Reject notice request failed:', error);
+                showAlert('Connection error', 'error');
+            }
         }
 
         function escapeHtml(text) {

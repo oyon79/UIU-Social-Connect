@@ -106,6 +106,8 @@ require_once '../includes/header.php';
             const response = await fetch('../api/jobs.php?action=get_all');
             const data = await response.json();
             
+            console.log('Jobs API Response:', data); // Debug log
+            
             const list = document.getElementById('jobsList');
             
             if (data.success && data.jobs && data.jobs.length > 0) {
@@ -128,6 +130,7 @@ require_once '../includes/header.php';
                     </div>
                 `).join('');
             } else {
+                console.log('No jobs found. Data:', data); // Debug log
                 list.innerHTML = `
                     <div class="text-center" style="padding: 3rem;">
                         <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-bottom: 1rem; color: var(--gray-dark);">
@@ -136,11 +139,20 @@ require_once '../includes/header.php';
                         </svg>
                         <h3>No Jobs Available</h3>
                         <p style="color: var(--gray-dark);">Check back later for new opportunities</p>
+                        ${!data.success ? `<p style="color: var(--error); margin-top: 1rem;">Error: ${data.message || 'Failed to load jobs'}</p>` : ''}
                     </div>
                 `;
             }
         } catch (error) {
-            console.error('Error:', error);
+            console.error('Error loading jobs:', error);
+            const list = document.getElementById('jobsList');
+            list.innerHTML = `
+                <div class="text-center" style="padding: 3rem;">
+                    <h3>Error Loading Jobs</h3>
+                    <p style="color: var(--error);">${error.message}</p>
+                    <button class="btn btn-primary" onclick="loadJobs()" style="margin-top: 1rem;">Retry</button>
+                </div>
+            `;
         }
     }
 

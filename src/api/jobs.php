@@ -30,13 +30,35 @@ switch ($action) {
 
 function getAllJobs($db)
 {
-    $sql = "SELECT j.*, 
-            (SELECT COUNT(*) FROM job_applications WHERE job_id = j.id) as applications_count
+    // Get all approved jobs
+    $sql = "SELECT j.*
             FROM jobs j
             WHERE j.is_approved = 1
             ORDER BY j.created_at DESC";
 
     $jobs = $db->query($sql);
+
+    if ($jobs === false) {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Database query failed'
+        ]);
+        return;
+    }
+
+    // Add applications_count (try to get from job_applications table if it exists)
+    if ($jobs) {
+        foreach ($jobs as &$job) {
+            $job['applications_count'] = 0; // Default to 0
+            
+            // Try to get count if job_applications table exists
+            $countSql = "SELECT COUNT(*) as count FROM job_applications WHERE job_id = ?";
+            $countResult = $db->query($countSql, [$job['id']]);
+            if ($countResult !== false && !empty($countResult)) {
+                $job['applications_count'] = intval($countResult[0]['count'] ?? 0);
+            }
+        }
+    }
 
     echo json_encode([
         'success' => true,

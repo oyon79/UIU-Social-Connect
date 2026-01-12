@@ -228,12 +228,36 @@ require_once '../includes/header.php';
             });
 
             const data = await response.json();
+            
             if (data.success) {
+                // Show success message
+                showAlert(data.message || 'RSVP updated!', 'success');
+                // Reload events to update attendee counts
                 loadEvents();
+            } else {
+                showAlert(data.message || 'Failed to update RSVP', 'error');
             }
         } catch (error) {
             console.error('Error:', error);
+            showAlert('Connection error. Please try again.', 'error');
         }
+    }
+
+    function showAlert(message, type) {
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type} animate-slide-down`;
+        alert.style.position = 'fixed';
+        alert.style.top = '20px';
+        alert.style.right = '20px';
+        alert.style.zIndex = '9999';
+        alert.style.minWidth = '300px';
+        alert.innerHTML = `<span>${message}</span>`;
+        document.body.appendChild(alert);
+        
+        setTimeout(() => {
+            alert.style.animation = 'fadeOut 0.3s ease';
+            setTimeout(() => alert.remove(), 300);
+        }, 3000);
     }
 
     function escapeHtml(text) {
