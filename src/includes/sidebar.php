@@ -6,7 +6,7 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
 <aside class="sidebar" id="sidebar">
     <!-- Logo -->
     <div class="sidebar-logo">
-        <div class="sidebar-logo-icon">U</div>
+        <img class="sidebar-logo-icon" src="../assets/uiu-logo.png" alt="UIU Logo">
         <div class="sidebar-logo-text">UIU Social</div>
     </div>
 
