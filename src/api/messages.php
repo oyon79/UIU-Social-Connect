@@ -35,6 +35,9 @@ switch ($action) {
     case 'search_users':
         searchUsers($db);
         break;
+    case 'get_all_users':
+        getAllUsers($db);
+        break;
     default:
         echo json_encode(['success' => false, 'message' => 'Invalid action']);
 }
@@ -253,6 +256,39 @@ function markAsRead($db)
     $result = $db->query($sql, [$senderId, $userId]);
 
     echo json_encode(['success' => $result ? true : false]);
+}
+
+function getAllUsers($db)
+{
+    try {
+        $userId = $_SESSION['user_id'];
+
+        $sql = "SELECT id, full_name, email, role, profile_image, is_active
+                FROM users 
+                WHERE id != ? 
+                AND is_approved = 1 
+                ORDER BY full_name ASC
+                LIMIT 100";
+
+        $users = $db->query($sql, [$userId]);
+
+        if ($users) {
+            foreach ($users as &$user) {
+                $user['is_online'] = (bool)($user['is_active'] ?? 0);
+            }
+        }
+
+        echo json_encode([
+            'success' => true,
+            'users' => $users ?: []
+        ]);
+    } catch (Exception $e) {
+        error_log("Error in getAllUsers: " . $e->getMessage());
+        echo json_encode([
+            'success' => false,
+            'message' => 'Failed to load users: ' . $e->getMessage()
+        ]);
+    }
 }
 
 function searchUsers($db)

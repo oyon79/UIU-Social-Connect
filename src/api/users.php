@@ -328,7 +328,7 @@ function getFriends($db)
 {
     $userId = intval($_GET['user_id'] ?? $_SESSION['user_id']);
 
-    $sql = "SELECT u.id, u.full_name, u.email, u.role, u.profile_image
+    $sql = "SELECT u.id, u.full_name, u.email, u.role, u.profile_image, u.is_active
             FROM users u
             INNER JOIN friendships f ON (
                 (f.user1_id = ? AND f.user2_id = u.id) OR 
@@ -338,6 +338,12 @@ function getFriends($db)
             ORDER BY u.full_name ASC";
 
     $friends = $db->query($sql, [$userId, $userId]);
+
+    if ($friends) {
+        foreach ($friends as &$friend) {
+            $friend['is_online'] = (bool)($friend['is_active'] ?? 0);
+        }
+    }
 
     echo json_encode([
         'success' => true,

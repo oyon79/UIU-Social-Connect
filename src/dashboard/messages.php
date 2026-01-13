@@ -50,15 +50,56 @@ require_once '../includes/header.php';
     .chat-header { padding: 1.5rem; border-bottom: 2px solid var(--gray-light); display: flex; align-items: center; justify-content: space-between; }
     .chat-user-info { display: flex; align-items: center; gap: 1rem; }
     
-    .chat-messages { flex: 1; overflow-y: auto; padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+    .chat-messages { 
+        flex: 1; 
+        overflow-y: auto; 
+        padding: 1.5rem; 
+        display: flex; 
+        flex-direction: column; 
+        gap: 0.5rem;
+        background: #f8f9fa;
+    }
     
-    .message { display: flex; gap: 1rem; max-width: 70%; }
-    .message.sent { margin-left: auto; flex-direction: row-reverse; }
+    .message { 
+        display: flex; 
+        gap: 1rem; 
+        max-width: 75%; 
+        align-items: flex-start;
+        margin-bottom: 1rem;
+    }
     
-    .message-content { background: var(--gray-light); padding: 0.875rem 1.25rem; border-radius: 16px; }
-    .message.sent .message-content { background: linear-gradient(135deg, var(--primary-orange), var(--primary-orange-light)); color: white; }
+    .message.received {
+        margin-right: auto;
+        margin-left: 0;
+    }
     
-    .message-time { font-size: 0.75rem; color: var(--gray-dark); margin-top: 0.25rem; }
+    .message.sent { 
+        margin-left: auto; 
+        margin-right: 0;
+        flex-direction: row-reverse; 
+    }
+    
+    .message-content { 
+        background: var(--gray-light); 
+        padding: 0.875rem 1.25rem; 
+        border-radius: 16px;
+        word-wrap: break-word;
+    }
+    
+    .message.sent .message-content { 
+        background: linear-gradient(135deg, var(--primary-orange), var(--primary-orange-light)); 
+        color: white; 
+    }
+    
+    .message-time { 
+        font-size: 0.75rem; 
+        color: var(--gray-dark); 
+        margin-top: 0.25rem;
+    }
+    
+    .message.sent .message-time {
+        text-align: right;
+    }
     
     .chat-input-container { padding: 1.5rem; border-top: 2px solid var(--gray-light); }
     .chat-input-wrapper { display: flex; gap: 1rem; align-items: flex-end; }
@@ -90,21 +131,14 @@ require_once '../includes/header.php';
                         <circle cx="11" cy="11" r="8"></circle>
                         <path d="m21 21-4.35-4.35"></path>
                     </svg>
-                    <input type="text" id="searchConversations" placeholder="Search conversations..." oninput="filterConversations(this.value)">
+                    <input type="text" id="searchConversations" placeholder="Search users..." oninput="filterUsers(this.value)">
                 </div>
-                <button class="btn btn-primary btn-block" style="margin-top: 1rem;" onclick="openNewMessageModal()">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
-                    New Message
-                </button>
             </div>
             
             <div class="conversations-list" id="conversationsList">
                 <div class="text-center" style="padding: 3rem;">
                     <div class="spinner"></div>
-                    <p style="margin-top: 1rem; color: var(--gray-dark);">Loading conversations...</p>
+                    <p style="margin-top: 1rem; color: var(--gray-dark);">Loading users...</p>
                 </div>
             </div>
         </div>
@@ -157,7 +191,11 @@ require_once '../includes/header.php';
     let currentChatUserId = null;
     let messageCheckInterval = null;
 
+    let allUsers = [];
+    let allConversations = [];
+
     document.addEventListener('DOMContentLoaded', () => {
+        loadAllUsers();
         loadConversations();
         
         // Check URL parameter for direct user chat
@@ -168,7 +206,32 @@ require_once '../includes/header.php';
         }
     });
 
-    let allConversations = [];
+    async function loadAllUsers() {
+        try {
+            // Load all approved users (or friends if available)
+            const response = await fetch('../api/users.php?action=get_friends');
+            const data = await response.json();
+            
+            if (data.success && data.friends && data.friends.length > 0) {
+                allUsers = data.friends;
+                renderUsersList(allUsers);
+            } else {
+                // If no friends, try to get all users (limited)
+                const allUsersResponse = await fetch('../api/messages.php?action=get_all_users');
+                const allUsersData = await allUsersResponse.json();
+                
+                if (allUsersData.success && allUsersData.users && allUsersData.users.length > 0) {
+                    allUsers = allUsersData.users;
+                    renderUsersList(allUsers);
+                } else {
+                    renderUsersList([]);
+                }
+            }
+        } catch (error) {
+            console.error('Error loading users:', error);
+            renderUsersList([]);
+        }
+    }
 
     async function loadConversations() {
         try {
@@ -178,77 +241,98 @@ require_once '../includes/header.php';
             }
             const data = await response.json();
             
-            const container = document.getElementById('conversationsList');
-            
             if (data.success && data.conversations && data.conversations.length > 0) {
                 allConversations = data.conversations;
-                renderConversations(allConversations);
+                // Merge conversations with users list, marking which have conversations
+                updateUsersWithConversations();
             } else {
                 allConversations = [];
-                container.innerHTML = `
-                    <div class="text-center" style="padding: 3rem;">
-                        <p style="color: var(--gray-dark);">No conversations yet</p>
-                        <p style="font-size: 0.875rem; color: var(--gray-dark); margin-top: 0.5rem;">
-                            Start chatting with friends!
-                        </p>
-                    </div>
-                `;
             }
         } catch (error) {
             console.error('Error loading conversations:', error);
-            document.getElementById('conversationsList').innerHTML = `
-                <div class="text-center" style="padding: 3rem;">
-                    <h3 style="color: var(--error);">Failed to load conversations</h3>
-                    <p style="color: var(--gray-dark);">An error occurred: ${error.message}</p>
-                    <button class="btn btn-secondary mt-3" onclick="loadConversations()">Retry</button>
-                </div>
-            `;
         }
     }
-
-    function renderConversations(conversations) {
+    
+    function updateUsersWithConversations() {
+        // Mark users who have conversations
+        allUsers.forEach(user => {
+            const conv = allConversations.find(c => c.other_user_id === user.id);
+            if (conv) {
+                user.hasConversation = true;
+                user.last_message = conv.last_message;
+                user.last_message_time = conv.last_message_time;
+                user.unread_count = conv.unread_count;
+            } else {
+                user.hasConversation = false;
+            }
+        });
+        renderUsersList(allUsers);
+    }
+    
+    function renderUsersList(users) {
         const container = document.getElementById('conversationsList');
-        if (conversations.length === 0) {
+        
+        if (users.length === 0) {
             container.innerHTML = `
                 <div class="text-center" style="padding: 3rem;">
-                    <p style="color: var(--gray-dark);">No conversations found</p>
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-bottom: 1rem; color: var(--gray-dark);">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                    <p style="color: var(--gray-dark);">No users found</p>
+                    <p style="font-size: 0.875rem; color: var(--gray-dark); margin-top: 0.5rem;">
+                        Add friends to start messaging!
+                    </p>
                 </div>
             `;
             return;
         }
         
-        container.innerHTML = conversations.map(conv => `
-            <div class="conversation-item animate-slide-left" onclick="openChat(${conv.other_user_id})">
+        // Sort: users with conversations first, then by name
+        const sortedUsers = [...users].sort((a, b) => {
+            if (a.hasConversation && !b.hasConversation) return -1;
+            if (!a.hasConversation && b.hasConversation) return 1;
+            return a.full_name.localeCompare(b.full_name);
+        });
+        
+        container.innerHTML = sortedUsers.map(user => `
+            <div class="conversation-item animate-slide-left ${currentChatUserId === user.id ? 'active' : ''}" onclick="openChat(${user.id})">
                 <div class="conversation-avatar">
-                    <div class="avatar" style="${conv.profile_image && conv.profile_image !== 'default-avatar.png' ? `background-image: url(../${conv.profile_image});` : ''}">
-                        ${!conv.profile_image || conv.profile_image === 'default-avatar.png' ? `<span>${conv.other_user_name.charAt(0).toUpperCase()}</span>` : ''}
+                    <div class="avatar" style="${user.profile_image && user.profile_image !== 'default-avatar.png' ? `background-image: url(../${user.profile_image});` : ''}">
+                        ${!user.profile_image || user.profile_image === 'default-avatar.png' ? `<span>${user.full_name.charAt(0).toUpperCase()}</span>` : ''}
                     </div>
-                    ${conv.is_online ? '<div class="online-indicator"></div>' : ''}
+                    ${user.is_online || user.is_active ? '<div class="online-indicator"></div>' : ''}
                 </div>
                 <div class="conversation-info">
-                    <div class="conversation-name">${escapeHtml(conv.other_user_name)}</div>
-                    <div class="conversation-preview">${escapeHtml(conv.last_message || 'No messages yet')}</div>
+                    <div class="conversation-name">${escapeHtml(user.full_name)}</div>
+                    <div class="conversation-preview">
+                        ${user.hasConversation ? escapeHtml(user.last_message || 'No messages yet') : escapeHtml(user.email || user.role || 'Click to start chatting')}
+                    </div>
                 </div>
                 <div class="conversation-meta">
-                    <div class="conversation-time">${conv.last_message_time || ''}</div>
-                    ${conv.unread_count > 0 ? `<span class="unread-badge">${conv.unread_count}</span>` : ''}
+                    ${user.hasConversation ? `<div class="conversation-time">${user.last_message_time || ''}</div>` : ''}
+                    ${user.unread_count > 0 ? `<span class="unread-badge">${user.unread_count}</span>` : ''}
                 </div>
             </div>
         `).join('');
     }
-
-    function filterConversations(query) {
+    
+    function filterUsers(query) {
         if (!query.trim()) {
-            renderConversations(allConversations);
+            renderUsersList(allUsers);
             return;
         }
         
-        const filtered = allConversations.filter(conv => 
-            conv.other_user_name.toLowerCase().includes(query.toLowerCase()) ||
-            (conv.last_message && conv.last_message.toLowerCase().includes(query.toLowerCase()))
+        const filtered = allUsers.filter(user => 
+            user.full_name.toLowerCase().includes(query.toLowerCase()) ||
+            (user.email && user.email.toLowerCase().includes(query.toLowerCase())) ||
+            (user.hasConversation && user.last_message && user.last_message.toLowerCase().includes(query.toLowerCase()))
         );
-        renderConversations(filtered);
+        renderUsersList(filtered);
     }
+
 
     async function openChat(userId) {
         currentChatUserId = userId;
@@ -291,11 +375,11 @@ require_once '../includes/header.php';
                     avatar.innerHTML = `<span>${user.full_name.charAt(0).toUpperCase()}</span>`;
                 }
                 
-                // Update online status
-                const statusEl = document.getElementById('chatUserStatus');
-                if (statusEl) {
-                    statusEl.textContent = user.is_active ? 'Online' : 'Offline';
-                }
+                // // Update online status
+                // const statusEl = document.getElementById('chatUserStatus');
+                // if (statusEl) {
+                //     statusEl.textContent = user.is_active ? 'Online' : 'Offline';
+                // }
             }
         } catch (error) {
             console.error('Error loading user info:', error);
@@ -313,14 +397,18 @@ require_once '../includes/header.php';
             if (data.success && data.messages) {
                 container.innerHTML = data.messages.map(msg => {
                     const senderInitial = msg.sender_name ? msg.sender_name.charAt(0).toUpperCase() : 'U';
+                    const isSent = msg.is_sent === 1 || msg.is_sent === true;
+                    const messageText = msg.content || msg.message || '';
                     return `
-                        <div class="message ${msg.is_sent ? 'sent' : 'received'}">
+                        <div class="message ${isSent ? 'sent' : 'received'}">
                             <div class="avatar" style="flex-shrink: 0;">
                                 <span>${senderInitial}</span>
                             </div>
-                            <div>
-                                <div class="message-content">${escapeHtml(msg.content || msg.message || '')}</div>
-                                <div class="message-time">${getTimeAgo(msg.created_at)}</div>
+                            <div style="flex: 1;">
+                                <div class="message-content">${escapeHtml(messageText)}</div>
+                                <div class="message-time">
+                                    ${getTimeAgo(msg.created_at)}${!isSent ? ' • ' + escapeHtml(msg.sender_name) : ''}
+                                </div>
                             </div>
                         </div>
                     `;
@@ -331,9 +419,32 @@ require_once '../includes/header.php';
                 }
             } else if (!data.success) {
                 console.error('Error loading messages:', data.message);
+                container.innerHTML = `
+                    <div class="empty-chat">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-bottom: 1rem; color: var(--gray-dark);">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                        <h3>Failed to Load Messages</h3>
+                        <p style="color: var(--gray-dark);">${data.message || 'An error occurred'}</p>
+                        <button class="btn btn-secondary mt-3" onclick="loadMessages(${userId})">Retry</button>
+                    </div>
+                `;
             }
         } catch (error) {
-            console.error('Error:', error);
+            console.error('Error loading messages:', error);
+            const container = document.getElementById('chatMessages');
+            container.innerHTML = `
+                <div class="empty-chat">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-bottom: 1rem; color: var(--error);">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    <h3 style="color: var(--error);">Connection Error</h3>
+                    <p style="color: var(--gray-dark);">Failed to load messages: ${error.message}</p>
+                    <button class="btn btn-secondary mt-3" onclick="loadMessages(${userId})">Retry</button>
+                </div>
+            `;
         }
     }
 
@@ -348,6 +459,11 @@ require_once '../includes/header.php';
             return;
         }
         
+        // Disable input while sending
+        input.disabled = true;
+        const sendBtn = document.querySelector('.chat-input-container .btn-primary');
+        if (sendBtn) sendBtn.disabled = true;
+        
         try {
             const response = await fetch('../api/messages.php?action=send_message', {
                 method: 'POST',
@@ -358,7 +474,17 @@ require_once '../includes/header.php';
                 })
             });
             
-            const data = await response.json();
+            const text = await response.text();
+            let data;
+            try {
+                data = text ? JSON.parse(text) : {};
+            } catch (parseError) {
+                console.error('Invalid JSON response:', text);
+                showAlert('Server error. Please try again.', 'error');
+                input.disabled = false;
+                if (sendBtn) sendBtn.disabled = false;
+                return;
+            }
             
             if (data.success) {
                 input.value = '';
@@ -370,6 +496,11 @@ require_once '../includes/header.php';
         } catch (error) {
             console.error('Error sending message:', error);
             showAlert('Connection error. Please try again.', 'error');
+        } finally {
+            // Re-enable input
+            input.disabled = false;
+            if (sendBtn) sendBtn.disabled = false;
+            input.focus();
         }
     }
 
@@ -485,3 +616,4 @@ require_once '../includes/header.php';
 
 </body>
 </html>
+

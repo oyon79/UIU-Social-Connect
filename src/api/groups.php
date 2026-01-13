@@ -45,6 +45,12 @@ switch ($action) {
     case 'check_membership':
         checkMembership($db);
         break;
+    case 'get_messages':
+        getGroupMessages($db);
+        break;
+    case 'send_message':
+        sendGroupMessage($db);
+        break;
     default:
         echo json_encode(['success' => false, 'message' => 'Invalid action']);
 }
@@ -470,4 +476,103 @@ function checkMembership($db)
         'is_member' => ($member && !empty($member)),
         'role' => $member && !empty($member) ? $member[0]['role'] : null
     ]);
+}
+
+function getGroupMessages($db)
+{
+    try {
+        $userId = $_SESSION['user_id'];
+        $groupId = intval($_GET['group_id'] ?? 0);
+        
+        if (!$groupId) {
+            echo json_encode(['success' => false, 'message' => 'Invalid group ID']);
+            return;
+        }
+        
+        // Check if user is a member
+        $checkSql = "SELECT id FROM group_members WHERE group_id = ? AND user_id = ?";
+        $isMember = $db->query($checkSql, [$groupId, $userId]);
+        
+        if (!$isMember || empty($isMember)) {
+            echo json_encode(['success' => false, 'message' => 'You must be a member to view messages']);
+            return;
+        }
+        
+        // Get messages
+        $sql = "SELECT gm.id, gm.group_id, gm.user_id, gm.message, gm.image_url, gm.video_url, gm.created_at,
+                       u.full_name as sender_name, u.profile_image,
+                       CASE WHEN gm.user_id = ? THEN 1 ELSE 0 END as is_sent
+                FROM group_messages gm
+                INNER JOIN users u ON gm.user_id = u.id
+                WHERE gm.group_id = ?
+                ORDER BY gm.created_at ASC";
+        
+        $messages = $db->query($sql, [$userId, $groupId]);
+        
+        if ($messages === false) {
+            throw new Exception("Database query failed: " . $db->getConnection()->error);
+        }
+        
+        echo json_encode([
+            'success' => true,
+            'messages' => $messages ?: []
+        ]);
+    } catch (Exception $e) {
+        error_log("Error in getGroupMessages: " . $e->getMessage());
+        echo json_encode([
+            'success' => false,
+            'message' => 'Failed to load messages: ' . $e->getMessage()
+        ]);
+    }
+}
+
+function sendGroupMessage($db)
+{
+    try {
+        $userId = $_SESSION['user_id'];
+        $data = json_decode(file_get_contents('php://input'), true);
+        
+        $groupId = intval($data['group_id'] ?? 0);
+        $message = trim($data['message'] ?? '');
+        
+        if (!$groupId || !$message) {
+            echo json_encode(['success' => false, 'message' => 'Group ID and message are required']);
+            return;
+        }
+        
+        // Check if user is a member
+        $checkSql = "SELECT id FROM group_members WHERE group_id = ? AND user_id = ?";
+        $isMember = $db->query($checkSql, [$groupId, $userId]);
+        
+        if (!$isMember || empty($isMember)) {
+            echo json_encode(['success' => false, 'message' => 'You must be a member to send messages']);
+            return;
+        }
+        
+        // Check if group exists and is approved
+        $groupSql = "SELECT id FROM groups WHERE id = ? AND is_approved = 1";
+        $group = $db->query($groupSql, [$groupId]);
+        
+        if (!$group || empty($group)) {
+            echo json_encode(['success' => false, 'message' => 'Group not found or not approved']);
+            return;
+        }
+        
+        $sql = "INSERT INTO group_messages (group_id, user_id, message, created_at) 
+                VALUES (?, ?, ?, NOW())";
+        
+        $result = $db->query($sql, [$groupId, $userId, $message]);
+        
+        if ($result === false) {
+            throw new Exception("Database error: " . $db->getConnection()->error);
+        }
+        
+        echo json_encode(['success' => true, 'message' => 'Message sent']);
+    } catch (Exception $e) {
+        error_log("Error in sendGroupMessage: " . $e->getMessage());
+        echo json_encode([
+            'success' => false,
+            'message' => 'Failed to send message: ' . $e->getMessage()
+        ]);
+    }
 }

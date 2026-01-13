@@ -15,16 +15,238 @@ require_once '../includes/header.php';
 
 <style>
     body { background: var(--gray-light); }
-    .main-container { margin-left: 280px; min-height: 100vh; padding: 2rem; }
-    .groups-header { background: white; border-radius: 20px; padding: 2rem; margin-bottom: 2rem; box-shadow: var(--shadow-md); display: flex; justify-content: space-between; align-items: center; }
-    .groups-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem; }
-    .group-card { background: white; border-radius: 16px; overflow: hidden; box-shadow: var(--shadow-md); transition: all 0.3s ease; }
-    .group-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
-    .group-cover { width: 100%; height: 140px; background: linear-gradient(135deg, var(--primary-orange), var(--primary-orange-light)); }
-    .group-content { padding: 1.5rem; }
-    .group-name { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem; }
-    .group-meta { display: flex; align-items: center; gap: 1rem; font-size: 0.875rem; color: var(--gray-dark); margin-bottom: 1rem; }
-    @media (max-width: 768px) { .main-container { margin-left: 0; } }
+    .main-container { margin-left: 280px; min-height: 100vh; padding: 0; }
+    
+    .groups-layout {
+        display: flex;
+        height: calc(100vh - 80px);
+        margin-top: 80px;
+    }
+    
+    /* Chat Area (Left Side) */
+    .chat-area {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background: white;
+        border-right: 2px solid var(--gray-light);
+    }
+    
+    .chat-header {
+        padding: 1.5rem;
+        border-bottom: 2px solid var(--gray-light);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    
+    .members-panel {
+        width: 280px;
+        background: white;
+        border-left: 2px solid var(--gray-light);
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+    }
+    
+    .members-panel-header {
+        padding: 1.5rem;
+        border-bottom: 2px solid var(--gray-light);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .members-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1rem;
+    }
+    
+    .member-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.75rem;
+        border-radius: 12px;
+        margin-bottom: 0.5rem;
+        transition: all 0.3s ease;
+    }
+    
+    .member-item:hover {
+        background: var(--gray-light);
+    }
+    
+    .member-info {
+        flex: 1;
+    }
+    
+    .member-name {
+        font-weight: 600;
+        font-size: 0.9375rem;
+    }
+    
+    .member-role {
+        font-size: 0.75rem;
+        color: var(--gray-dark);
+        text-transform: capitalize;
+    }
+    
+    .member-badge {
+        background: var(--primary-orange);
+        color: white;
+        font-size: 0.7rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 8px;
+        font-weight: 600;
+    }
+    
+    .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        background: #f8f9fa;
+    }
+    
+    .message {
+        display: flex;
+        gap: 1rem;
+        max-width: 75%;
+        align-items: flex-start;
+    }
+    
+    .message.received {
+        margin-right: auto;
+        margin-left: 0;
+    }
+    
+    .message.sent {
+        margin-left: auto;
+        margin-right: 0;
+        flex-direction: row-reverse;
+    }
+    
+    .message-content {
+        background: var(--gray-light);
+        padding: 0.875rem 1.25rem;
+        border-radius: 16px;
+    }
+    
+    .message.sent .message-content {
+        background: linear-gradient(135deg, var(--primary-orange), var(--primary-orange-light));
+        color: white;
+    }
+    
+    .message-time {
+        font-size: 0.75rem;
+        color: var(--gray-dark);
+        margin-top: 0.25rem;
+    }
+    
+    .chat-input-container {
+        padding: 1.5rem;
+        border-top: 2px solid var(--gray-light);
+    }
+    
+    .chat-input-wrapper {
+        display: flex;
+        gap: 1rem;
+        align-items: flex-end;
+    }
+    
+    .chat-input {
+        flex: 1;
+        padding: 0.875rem 1.25rem;
+        border: 2px solid var(--gray-medium);
+        border-radius: 16px;
+        resize: none;
+        max-height: 120px;
+    }
+    
+    .empty-chat {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: var(--gray-dark);
+    }
+    
+    /* Groups List (Right Side) */
+    .groups-sidebar {
+        width: 400px;
+        background: white;
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+    }
+    
+    .groups-sidebar-header {
+        padding: 1.5rem;
+        border-bottom: 2px solid var(--gray-light);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .groups-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1rem;
+    }
+    
+    .group-item {
+        padding: 1rem;
+        border-radius: 12px;
+        margin-bottom: 0.5rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+    }
+    
+    .group-item:hover {
+        background: var(--gray-light);
+    }
+    
+    .group-item.active {
+        background: linear-gradient(135deg, rgba(255, 122, 0, 0.1), rgba(255, 179, 102, 0.1));
+        border-color: var(--primary-orange);
+    }
+    
+    .group-item-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .group-item-name {
+        font-weight: 600;
+        font-size: 1rem;
+    }
+    
+    .group-item-meta {
+        font-size: 0.875rem;
+        color: var(--gray-dark);
+    }
+    
+    @media (max-width: 768px) {
+        .main-container { margin-left: 0; }
+        .groups-layout { flex-direction: column; }
+        .chat-area { height: 50vh; }
+        .groups-sidebar { width: 100%; height: 50vh; }
+        .members-panel { 
+            position: absolute; 
+            right: 0; 
+            top: 0; 
+            height: 100%; 
+            z-index: 10;
+            box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+        }
+    }
 </style>
 
 <?php include '../includes/sidebar.php'; ?>
@@ -32,24 +254,98 @@ require_once '../includes/header.php';
 <div class="main-container">
     <?php include '../includes/navbar.php'; ?>
     
-    <div class="groups-header animate-fade-in">
-        <div>
-            <h1>👥 Groups & Clubs</h1>
-            <p style="color: var(--gray-dark);">Join communities and connect with others</p>
-        </div>
-        <button class="btn btn-primary" onclick="openCreateModal()">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-            Create Group
-        </button>
-    </div>
+    <div class="groups-layout">
+        <!-- Chat Area (Left) -->
+        <div class="chat-area" id="chatArea">
+            <div class="empty-chat" id="emptyChat">
+                <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-bottom: 1rem;">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+                <h3>Select a Group</h3>
+                <p>Choose a group from the list to start chatting</p>
+            </div>
 
-    <div class="groups-grid" id="groupsGrid">
-        <div style="grid-column: 1/-1; text-align: center; padding: 3rem;">
-            <div class="spinner"></div>
-            <p style="margin-top: 1rem; color: var(--gray-dark);">Loading groups...</p>
+            <div id="activeChat" style="display: none; flex: 1; display: flex; flex-direction: row;">
+                <div style="flex: 1; display: flex; flex-direction: column;">
+                    <div class="chat-header">
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <div class="avatar" id="chatGroupAvatar">
+                                <span>G</span>
+                            </div>
+                            <div>
+                                <h3 id="chatGroupName" style="margin: 0;">Group Name</h3>
+                                <p style="font-size: 0.875rem; color: var(--gray-dark); margin: 0;" id="chatGroupMembers">0 members</p>
+                            </div>
+                        </div>
+                        <button class="btn btn-ghost" onclick="toggleMembersPanel()" id="membersToggleBtn">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="9" cy="7" r="4"></circle>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                            </svg>
+                            Members
+                        </button>
+                    </div>
+
+                <div class="chat-messages" id="chatMessages">
+                    <!-- Messages will be loaded here -->
+                </div>
+
+                    <div class="chat-input-container">
+                        <div class="chat-input-wrapper">
+                            <textarea id="messageInput" class="chat-input" placeholder="Type a message..." rows="1"></textarea>
+                            <button class="btn btn-primary" onclick="sendGroupMessage()">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                </svg>
+                                Send
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Members Panel -->
+                <div class="members-panel" id="membersPanel">
+                    <div class="members-panel-header">
+                        <h3 style="margin: 0;">Members</h3>
+                        <button class="btn btn-ghost btn-sm" onclick="toggleMembersPanel()">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="members-list" id="membersList">
+                        <div class="text-center" style="padding: 2rem;">
+                            <div class="spinner"></div>
+                            <p style="margin-top: 1rem; color: var(--gray-dark);">Loading members...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Groups List (Right) -->
+        <div class="groups-sidebar">
+            <div class="groups-sidebar-header">
+                <h2 style="margin: 0;">My Groups</h2>
+                <button class="btn btn-primary btn-sm" onclick="openCreateModal()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Create
+                </button>
+            </div>
+            
+            <div class="groups-list" id="groupsList">
+                <div class="text-center" style="padding: 3rem;">
+                    <div class="spinner"></div>
+                    <p style="margin-top: 1rem; color: var(--gray-dark);">Loading groups...</p>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -90,49 +386,48 @@ require_once '../includes/header.php';
 </div>
 
 <script>
-    loadGroups();
+    let currentGroupId = null;
+    let messageCheckInterval = null;
 
-    async function loadGroups() {
+    document.addEventListener('DOMContentLoaded', () => {
+        loadUserGroups();
+        
+        // Check URL parameter for direct group chat
+        const urlParams = new URLSearchParams(window.location.search);
+        const groupId = urlParams.get('group');
+        if (groupId) {
+            openGroupChat(parseInt(groupId));
+        }
+    });
+
+    async function loadUserGroups() {
         try {
-            const response = await fetch('../api/groups.php?action=get_all');
+            const response = await fetch('../api/groups.php?action=get_user_groups');
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             const data = await response.json();
             
-            const grid = document.getElementById('groupsGrid');
+            const container = document.getElementById('groupsList');
             
             if (data.success && data.groups && data.groups.length > 0) {
-                grid.innerHTML = data.groups.map(group => `
-                    <div class="group-card animate-scale-in">
-                        <div class="group-cover" style="${group.image_url ? `background-image: url(../${group.image_url}); background-size: cover; background-position: center;` : ''}"></div>
-                        <div class="group-content">
-                            <h3 class="group-name">${escapeHtml(group.name)}</h3>
-                            <p style="color: var(--gray-dark); margin-bottom: 1rem;">${escapeHtml(group.description || 'No description')}</p>
-                            <div class="group-meta">
-                                <span>👥 ${group.members_count || 0} members</span>
-                                ${group.category ? `<span>🏷️ ${escapeHtml(group.category)}</span>` : ''}
+                container.innerHTML = data.groups.map(group => `
+                    <div class="group-item ${currentGroupId === group.id ? 'active' : ''}" onclick="openGroupChat(${group.id})">
+                        <div class="group-item-header">
+                            <div class="avatar" style="${group.image_url ? `background-image: url(../${group.image_url});` : ''}">
+                                ${!group.image_url ? `<span>${group.name.charAt(0).toUpperCase()}</span>` : ''}
                             </div>
-                            ${group.is_creator ? `
-                                <div style="display: flex; gap: 0.5rem;">
-                                    <button class="btn btn-secondary btn-block" onclick="viewGroup(${group.id})">View</button>
-                                    <button class="btn btn-danger btn-block" onclick="deleteGroup(${group.id})">Delete</button>
-                                </div>
-                            ` : group.is_member ? `
-                                <button class="btn btn-secondary btn-block" onclick="leaveGroup(${group.id})">
-                                    Leave Group
-                                </button>
-                            ` : `
-                                <button class="btn btn-primary btn-block" onclick="joinGroup(${group.id})">
-                                    Join Group
-                                </button>
-                            `}
+                            <div style="flex: 1;">
+                                <div class="group-item-name">${escapeHtml(group.name)}</div>
+                                <div class="group-item-meta">👥 ${group.members_count || 0} members</div>
+                            </div>
                         </div>
+                        ${group.description ? `<p style="font-size: 0.875rem; color: var(--gray-dark); margin: 0;">${escapeHtml(group.description.substring(0, 50))}${group.description.length > 50 ? '...' : ''}</p>` : ''}
                     </div>
                 `).join('');
             } else {
-                grid.innerHTML = `
-                    <div style="grid-column: 1/-1; text-align: center; padding: 3rem;">
+                container.innerHTML = `
+                    <div class="text-center" style="padding: 3rem;">
                         <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-bottom: 1rem; color: var(--gray-dark);">
                             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
                             <circle cx="9" cy="7" r="4"></circle>
@@ -140,21 +435,240 @@ require_once '../includes/header.php';
                             <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                         </svg>
                         <h3>No Groups Yet</h3>
-                        <p style="color: var(--gray-dark);">Create the first group!</p>
+                        <p style="color: var(--gray-dark);">Join or create a group to start chatting!</p>
                     </div>
                 `;
             }
         } catch (error) {
             console.error('Error loading groups:', error);
-            document.getElementById('groupsGrid').innerHTML = `
-                <div style="grid-column: 1/-1; text-align: center; padding: 3rem;">
+            document.getElementById('groupsList').innerHTML = `
+                <div class="text-center" style="padding: 3rem;">
                     <h3 style="color: var(--error);">Failed to load groups</h3>
                     <p style="color: var(--gray-dark);">An error occurred: ${error.message}</p>
-                    <button class="btn btn-secondary mt-3" onclick="loadGroups()">Retry</button>
+                    <button class="btn btn-secondary mt-3" onclick="loadUserGroups()">Retry</button>
                 </div>
             `;
         }
     }
+
+    async function openGroupChat(groupId) {
+        currentGroupId = groupId;
+        
+        // Hide empty state
+        document.getElementById('emptyChat').style.display = 'none';
+        document.getElementById('activeChat').style.display = 'flex';
+        
+        // Mark group as active
+        document.querySelectorAll('.group-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        event?.target?.closest('.group-item')?.classList.add('active');
+        
+        // Load group info and check membership
+        await loadGroupInfo(groupId);
+        await checkMembership(groupId);
+        
+        // Load members
+        loadGroupMembers(groupId);
+        
+        // Load messages (only if member, otherwise show join message)
+        loadGroupMessages(groupId);
+        
+        // Start polling for new messages
+        if (messageCheckInterval) clearInterval(messageCheckInterval);
+        messageCheckInterval = setInterval(() => loadGroupMessages(groupId), 3000);
+    }
+    
+    async function checkMembership(groupId) {
+        try {
+            const response = await fetch(`../api/groups.php?action=check_membership&group_id=${groupId}`);
+            const data = await response.json();
+            
+            const messageInput = document.getElementById('messageInput');
+            const sendBtn = document.querySelector('.chat-input-container .btn-primary');
+            
+            if (data.success && data.is_member) {
+                // User is a member - enable messaging
+                messageInput.disabled = false;
+                messageInput.placeholder = 'Type a message...';
+                if (sendBtn) sendBtn.disabled = false;
+            } else {
+                // User is not a member - disable messaging
+                messageInput.disabled = true;
+                messageInput.placeholder = 'You must join this group to send messages';
+                if (sendBtn) sendBtn.disabled = true;
+            }
+        } catch (error) {
+            console.error('Error checking membership:', error);
+        }
+    }
+    
+    function toggleMembersPanel() {
+        const panel = document.getElementById('membersPanel');
+        panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
+    }
+    
+    async function loadGroupMembers(groupId) {
+        try {
+            const response = await fetch(`../api/groups.php?action=get_members&group_id=${groupId}`);
+            const data = await response.json();
+            
+            const container = document.getElementById('membersList');
+            
+            if (data.success && data.members && data.members.length > 0) {
+                container.innerHTML = data.members.map(member => `
+                    <div class="member-item">
+                        <div class="avatar" style="${member.profile_image && member.profile_image !== 'default-avatar.png' ? `background-image: url(../${member.profile_image});` : ''}">
+                            ${!member.profile_image || member.profile_image === 'default-avatar.png' ? `<span>${member.full_name.charAt(0).toUpperCase()}</span>` : ''}
+                        </div>
+                        <div class="member-info">
+                            <div class="member-name">${escapeHtml(member.full_name)}</div>
+                            <div class="member-role">${escapeHtml(member.role)}</div>
+                        </div>
+                        ${member.member_role === 'admin' ? '<span class="member-badge">Admin</span>' : member.member_role === 'moderator' ? '<span class="member-badge" style="background: var(--success);">Mod</span>' : ''}
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = `
+                    <div class="text-center" style="padding: 2rem;">
+                        <p style="color: var(--gray-dark);">No members found</p>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('Error loading group members:', error);
+            document.getElementById('membersList').innerHTML = `
+                <div class="text-center" style="padding: 2rem;">
+                    <p style="color: var(--error);">Failed to load members</p>
+                </div>
+            `;
+        }
+    }
+
+    async function loadGroupInfo(groupId) {
+        try {
+            const response = await fetch(`../api/groups.php?action=get_by_id&group_id=${groupId}`);
+            const data = await response.json();
+            
+            if (data.success) {
+                const group = data.group;
+                document.getElementById('chatGroupName').textContent = group.name;
+                document.getElementById('chatGroupMembers').textContent = `${group.members_count || 0} members`;
+                const avatar = document.getElementById('chatGroupAvatar');
+                if (group.image_url) {
+                    avatar.style.backgroundImage = `url(../${group.image_url})`;
+                    avatar.innerHTML = '';
+                } else {
+                    avatar.style.backgroundImage = '';
+                    avatar.innerHTML = `<span>${group.name.charAt(0).toUpperCase()}</span>`;
+                }
+            }
+        } catch (error) {
+            console.error('Error loading group info:', error);
+        }
+    }
+
+    async function loadGroupMessages(groupId) {
+        try {
+            const response = await fetch(`../api/groups.php?action=get_messages&group_id=${groupId}`);
+            const data = await response.json();
+            
+            const container = document.getElementById('chatMessages');
+            const wasScrolledToBottom = container.scrollHeight - container.scrollTop === container.clientHeight;
+            
+            if (data.success && data.messages) {
+                container.innerHTML = data.messages.map(msg => {
+                    const senderInitial = msg.sender_name ? msg.sender_name.charAt(0).toUpperCase() : 'U';
+                    const isSent = msg.is_sent === 1 || msg.is_sent === true;
+                    return `
+                        <div class="message ${isSent ? 'sent' : 'received'}">
+                            <div class="avatar" style="flex-shrink: 0;">
+                                <span>${senderInitial}</span>
+                            </div>
+                            <div>
+                                <div class="message-content">${escapeHtml(msg.message || '')}</div>
+                                <div class="message-time">${getTimeAgo(msg.created_at)}${!isSent ? ' • ' + escapeHtml(msg.sender_name) : ''}</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                if (wasScrolledToBottom || data.messages.length === 1) {
+                    container.scrollTop = container.scrollHeight;
+                }
+            } else if (!data.success) {
+                // User is not a member
+                container.innerHTML = `
+                    <div class="empty-chat">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-bottom: 1rem; color: var(--gray-dark);">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                        <h3>Join to View Messages</h3>
+                        <p style="color: var(--gray-dark);">You must be a member of this group to view and send messages.</p>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('Error loading group messages:', error);
+        }
+    }
+
+    async function sendGroupMessage() {
+        const input = document.getElementById('messageInput');
+        const content = input.value.trim();
+        
+        if (!content || !currentGroupId) {
+            if (!content) {
+                showAlert('Please enter a message', 'error');
+            }
+            return;
+        }
+        
+        // Check if input is disabled (user not a member)
+        if (input.disabled) {
+            showAlert('You must join this group to send messages', 'error');
+            return;
+        }
+        
+        try {
+            const response = await fetch('../api/groups.php?action=send_message', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    group_id: currentGroupId,
+                    message: content
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                input.value = '';
+                loadGroupMessages(currentGroupId);
+            } else {
+                showAlert(data.message || 'Failed to send message', 'error');
+                // If error is about membership, disable input
+                if (data.message && data.message.includes('member')) {
+                    input.disabled = true;
+                    input.placeholder = 'You must join this group to send messages';
+                }
+            }
+        } catch (error) {
+            console.error('Error sending message:', error);
+            showAlert('Connection error. Please try again.', 'error');
+        }
+    }
+
+    // Send message on Enter
+    document.getElementById('messageInput')?.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendGroupMessage();
+        }
+    });
 
     function openCreateModal() {
         document.getElementById('createGroupModal').classList.add('active');
@@ -195,7 +709,7 @@ require_once '../includes/header.php';
                 closeCreateModal();
                 showAlert('Group created! Waiting for admin approval.', 'success');
                 document.getElementById('createGroupForm').reset();
-                loadGroups();
+                loadUserGroups();
             } else {
                 showAlert(data.message || 'Failed to create group', 'error');
             }
@@ -205,76 +719,21 @@ require_once '../includes/header.php';
         }
     }
 
-    async function joinGroup(groupId) {
-        try {
-            const response = await fetch('../api/groups.php?action=join', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ group_id: groupId })
-            });
-
-            const data = await response.json();
-            if (data.success) {
-                showAlert('Joined group successfully!', 'success');
-                loadGroups();
-            } else {
-                showAlert(data.message || 'Failed to join group', 'error');
-            }
-        } catch (error) {
-            console.error('Error joining group:', error);
-            showAlert('Connection error. Please try again.', 'error');
-        }
+    function getTimeAgo(timestamp) {
+        const now = new Date();
+        const msgTime = new Date(timestamp);
+        const diffInSeconds = Math.floor((now - msgTime) / 1000);
+        
+        if (diffInSeconds < 60) return 'Just now';
+        if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+        if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+        return msgTime.toLocaleDateString();
     }
 
-    async function leaveGroup(groupId) {
-        if (!confirm('Are you sure you want to leave this group?')) return;
-
-        try {
-            const response = await fetch('../api/groups.php?action=leave', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ group_id: groupId })
-            });
-
-            const data = await response.json();
-            if (data.success) {
-                showAlert('Left group successfully', 'success');
-                loadGroups();
-            } else {
-                showAlert(data.message || 'Failed to leave group', 'error');
-            }
-        } catch (error) {
-            console.error('Error leaving group:', error);
-            showAlert('Connection error. Please try again.', 'error');
-        }
-    }
-
-    async function deleteGroup(groupId) {
-        if (!confirm('Are you sure you want to delete this group? This action cannot be undone!')) return;
-        if (!confirm('This will permanently delete the group and all its data. Continue?')) return;
-
-        try {
-            const response = await fetch('../api/groups.php?action=delete', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ group_id: groupId })
-            });
-
-            const data = await response.json();
-            if (data.success) {
-                showAlert('Group deleted successfully', 'success');
-                loadGroups();
-            } else {
-                showAlert(data.message || 'Failed to delete group', 'error');
-            }
-        } catch (error) {
-            console.error('Error deleting group:', error);
-            showAlert('Connection error. Please try again.', 'error');
-        }
-    }
-
-    function viewGroup(groupId) {
-        window.location.href = `group-detail.php?id=${groupId}`;
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     function showAlert(message, type) {
@@ -288,11 +747,10 @@ require_once '../includes/header.php';
         setTimeout(() => alert.remove(), 3000);
     }
 
-    function escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+        if (messageCheckInterval) clearInterval(messageCheckInterval);
+    });
 </script>
 
 </body>
