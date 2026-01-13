@@ -258,7 +258,7 @@ require_once '../includes/header.php';
         </div>
 
         <!-- Danger Zone -->
-        <div class="settings-section animate-slide-up" style="animation-delay: 0.5s; border: 2px solid var(--error);">
+        <!-- <div class="settings-section animate-slide-up" style="animation-delay: 0.5s; border: 2px solid var(--error);">
             <h3 style="color: var(--error);">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="12" r="10"></circle>
@@ -273,7 +273,7 @@ require_once '../includes/header.php';
             </div>
 
             <button class="btn btn-danger" onclick="deleteAccount()">Delete Account</button>
-        </div>
+        </div> -->
     </div>
 </div>
 

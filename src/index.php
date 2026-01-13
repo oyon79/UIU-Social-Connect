@@ -26,7 +26,7 @@
             right: 0;
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(20px);
-            padding: 1.25rem 0;
+            padding: 1rem 0;
             box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
             z-index: 1000;
             animation: slideDown 0.5s ease;
@@ -50,32 +50,13 @@
         }
 
         .auth-navbar-logo-icon {
-            width: 50px;
-            height: 50px;
-            background: linear-gradient(135deg, var(--primary-orange), var(--primary-orange-light));
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1.125rem;
-            font-weight: 700;
-            box-shadow: 0 4px 12px rgba(255, 122, 0, 0.3);
-            transition: all 0.3s ease;
-        }
-
-        .auth-navbar-logo:hover .auth-navbar-logo-icon {
-            transform: rotate(5deg) scale(1.05);
-            box-shadow: 0 6px 16px rgba(255, 122, 0, 0.4);
+            width: 80px;
+            height: 80px;
         }
 
         .auth-navbar-logo-text {
             font-size: 1.375rem;
             font-weight: 700;
-            background: linear-gradient(135deg, var(--primary-orange), var(--primary-orange-light));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
         }
 
         .auth-navbar-buttons {
@@ -395,7 +376,7 @@
     <nav class="auth-navbar">
         <div class="auth-navbar-container">
             <a href="landing.php" class="auth-navbar-logo">
-                <div class="auth-navbar-logo-icon">UIU</div>
+                <img class="auth-navbar-logo-icon" src="./assets/uiu-logo.png" alt="UIU Logo">
                 <span class="auth-navbar-logo-text">UIU Social Connect</span>
             </a>
             <div class="auth-navbar-buttons">
@@ -414,11 +395,6 @@
 
         <!-- Login Container -->
         <div class="login-container">
-            <!-- Premium Logo -->
-            <div class="logo-container">
-                <span>UIU</span>
-            </div>
-
             <!-- Header -->
             <div class="login-header">
                 <h2>Welcome Back!</h2>

@@ -20,7 +20,6 @@ require_once '../includes/header.php';
     .groups-layout {
         display: flex;
         height: calc(100vh - 80px);
-        margin-top: 80px;
     }
     
     /* Chat Area (Left Side) */

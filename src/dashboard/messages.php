@@ -17,7 +17,7 @@ require_once '../includes/header.php';
     body { background: var(--gray-light); }
     .main-container { margin-left: 280px; min-height: 100vh; }
     
-    .messages-container { display: flex; height: calc(100vh - 80px); margin-top: 80px; }
+    .messages-container { display: flex; height: calc(100vh - 80px); }
     
     .conversations-sidebar { width: 380px; background: white; border-right: 2px solid var(--gray-light); display: flex; flex-direction: column; }
     

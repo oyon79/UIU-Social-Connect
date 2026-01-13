@@ -27,7 +27,7 @@
             right: 0;
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(20px);
-            padding: 1.25rem 0;
+            padding: 1rem 0;
             box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
             z-index: 1000;
             animation: slideDown 0.5s ease;
@@ -49,24 +49,14 @@
         }
 
         .navbar-logo-icon {
-            width: 50px;
-            height: 50px;
-            background: linear-gradient(135deg, var(--primary-orange), var(--primary-orange-light));
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1.5rem;
-            font-weight: 700;
-            box-shadow: 0 4px 12px rgba(255, 122, 0, 0.3);
-            transition: all 0.3s ease;
+            width: 100px;
+            height: 100px;
         }
 
-        .navbar-logo-icon:hover {
+        /* .navbar-logo-icon:hover {
             transform: rotate(5deg) scale(1.05);
             box-shadow: 0 6px 16px rgba(255, 122, 0, 0.4);
-        }
+        } */
 
         .navbar-logo-text {
             font-size: 1.5rem;
@@ -346,10 +336,10 @@
             transition: all 0.3s ease;
         }
 
-        .feature-card:hover .feature-icon {
+        /* .feature-card:hover .feature-icon {
             background: linear-gradient(135deg, var(--primary-orange), var(--primary-orange-light));
             transform: scale(1.1) rotate(5deg);
-        }
+        } */
 
         .feature-icon svg {
             width: 32px;
@@ -358,9 +348,9 @@
             transition: all 0.3s ease;
         }
 
-        .feature-card:hover .feature-icon svg {
+        /* .feature-card:hover .feature-icon svg {
             color: white;
-        }
+        } */
 
         .feature-title {
             font-size: 1.5rem;
@@ -455,7 +445,7 @@
     <nav class="landing-navbar">
         <div class="navbar-container">
             <div class="navbar-logo">
-                <div class="navbar-logo-icon">UIU</div>
+                <img class="navbar-logo-icon" src="./assets/uiu-logo.png" alt="UIU Logo">
                 <span class="navbar-logo-text">UIU Social Connect</span>
             </div>
             <div class="navbar-buttons">
@@ -498,7 +488,7 @@
             </div>
             
             <div class="hero-image">
-                <img src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800" alt="Students collaborating">
+                <img src="./assets/hero.png" alt="Students collaborating">
             </div>
         </div>
     </section>
