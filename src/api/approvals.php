@@ -1,4 +1,9 @@
 <?php
+// Suppress error display, log errors instead
+error_reporting(E_ALL);
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
+
 session_start();
 require_once '../includes/config.php';
 require_once '../includes/db.php';
@@ -33,6 +38,9 @@ switch ($action) {
         break;
     case 'get_pending_marketplace':
         getPendingMarketplace($db);
+        break;
+    case 'get_pending_groups':
+        getPendingGroups($db);
         break;
     case 'approve_user':
         approveUser($db);
@@ -69,6 +77,12 @@ switch ($action) {
         break;
     case 'reject_marketplace':
         rejectMarketplace($db);
+        break;
+    case 'approve_group':
+        approveGroup($db);
+        break;
+    case 'reject_group':
+        rejectGroup($db);
         break;
     default:
         echo json_encode(['success' => false, 'message' => 'Invalid action']);
@@ -168,6 +182,35 @@ function getPendingMarketplace($db)
         'success' => true,
         'items' => $items ?: []
     ]);
+}
+
+function getPendingGroups($db)
+{
+    try {
+        $sql = "SELECT g.*, u.full_name as creator_name
+                FROM groups g
+                INNER JOIN users u ON g.creator_id = u.id
+                WHERE g.is_approved = 0
+                ORDER BY g.created_at DESC";
+
+        $groups = $db->query($sql);
+
+        if ($groups === false) {
+            throw new Exception("Database query failed: " . $db->getConnection()->error);
+        }
+
+        echo json_encode([
+            'success' => true,
+            'groups' => $groups ?: []
+        ]);
+    } catch (Exception $e) {
+        error_log("Error in getPendingGroups: " . $e->getMessage());
+        echo json_encode([
+            'success' => false,
+            'message' => 'Failed to load groups: ' . $e->getMessage(),
+            'groups' => []
+        ]);
+    }
 }
 
 function approveUser($db)
@@ -602,6 +645,88 @@ function rejectMarketplace($db)
         echo json_encode([
             'success' => false,
             'message' => 'Failed to reject item'
+        ]);
+    }
+}
+
+function approveGroup($db)
+{
+    $data = json_decode(file_get_contents('php://input'), true);
+    $groupId = intval($data['group_id'] ?? 0);
+    $adminId = $_SESSION['user_id'];
+
+    if (!$groupId) {
+        echo json_encode(['success' => false, 'message' => 'Invalid group ID']);
+        return;
+    }
+
+    $sql = "UPDATE groups SET is_approved = 1, approved_by = ?, approved_at = NOW() WHERE id = ?";
+    $result = $db->query($sql, [$adminId, $groupId]);
+
+    if ($result) {
+        // Get group creator
+        $groupSql = "SELECT creator_id FROM groups WHERE id = ?";
+        $group = $db->query($groupSql, [$groupId]);
+
+        if ($group && !empty($group)) {
+            // Notify user about group approval
+            $notifSql = "INSERT INTO notifications (user_id, type, title, message, reference_id, reference_type, created_at) 
+                         VALUES (?, 'approval', 'Group Approved', 'Your group has been approved!', ?, 'group', NOW())";
+            $db->query($notifSql, [$group[0]['creator_id'], $groupId]);
+        }
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Group approved successfully'
+        ]);
+    } else {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Failed to approve group'
+        ]);
+    }
+}
+
+function rejectGroup($db)
+{
+    $data = json_decode(file_get_contents('php://input'), true);
+    $groupId = intval($data['group_id'] ?? 0);
+    $adminId = $_SESSION['user_id'];
+
+    if (!$groupId) {
+        echo json_encode(['success' => false, 'message' => 'Invalid group ID']);
+        return;
+    }
+
+    // Get group creator and image before deletion
+    $groupSql = "SELECT creator_id, image_url FROM groups WHERE id = ?";
+    $group = $db->query($groupSql, [$groupId]);
+
+    // Delete image if exists
+    if ($group && !empty($group) && $group[0]['image_url'] && file_exists('../' . $group[0]['image_url'])) {
+        unlink('../' . $group[0]['image_url']);
+    }
+
+    // Delete the group
+    $sql = "DELETE FROM groups WHERE id = ?";
+    $result = $db->query($sql, [$groupId]);
+
+    if ($result) {
+        if ($group && !empty($group)) {
+            // Notify user about group rejection
+            $notifSql = "INSERT INTO notifications (user_id, type, title, message, reference_id, reference_type, created_at) 
+                         VALUES (?, 'rejection', 'Group Rejected', 'Your group was not approved.', ?, 'group', NOW())";
+            $db->query($notifSql, [$group[0]['creator_id'], $groupId]);
+        }
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Group rejected and deleted successfully'
+        ]);
+    } else {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Failed to reject group'
         ]);
     }
 }

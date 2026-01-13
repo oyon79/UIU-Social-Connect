@@ -4,11 +4,18 @@ require_once '../includes/config.php';
 require_once '../includes/db.php';
 require_once '../includes/functions.php';
 
-header('Content-Type: application/json');
-
 // Get request data - check both GET parameter and JSON body
 $input = json_decode(file_get_contents('php://input'), true);
 $action = $_GET['action'] ?? $input['action'] ?? '';
+
+// Handle logout separately (can be GET or POST, and needs redirect)
+if ($action === 'logout') {
+    handleLogout();
+    exit; // Exit after redirect
+}
+
+// For other actions, set JSON header
+header('Content-Type: application/json');
 
 switch ($action) {
     case 'login':
@@ -17,10 +24,6 @@ switch ($action) {
 
     case 'register':
         handleRegister($input);
-        break;
-
-    case 'logout':
-        handleLogout();
         break;
 
     case 'forgot_password':
@@ -209,14 +212,28 @@ function handleRegister($input)
 // Handle Logout
 function handleLogout()
 {
+    // Log activity before destroying session
     if (isset($_SESSION['user_id'])) {
-        logActivity($_SESSION['user_id'], null, 'User Logout', 'User logged out');
+        if (function_exists('logActivity')) {
+            logActivity($_SESSION['user_id'], null, 'User Logout', 'User logged out');
+        }
     } elseif (isset($_SESSION['admin_id'])) {
-        logActivity(null, $_SESSION['admin_id'], 'Admin Logout', 'Admin logged out');
+        if (function_exists('logActivity')) {
+            logActivity(null, $_SESSION['admin_id'], 'Admin Logout', 'Admin logged out');
+        }
     }
 
+    // Destroy session
     session_destroy();
-    jsonResponse(['success' => true, 'message' => 'Logged out successfully']);
+    
+    // Clear session cookie
+    if (isset($_COOKIE[session_name()])) {
+        setcookie(session_name(), '', time() - 3600, '/');
+    }
+    
+    // Redirect to login page
+    header('Location: ../index.php');
+    exit;
 }
 
 // Handle Forgot Password

@@ -249,6 +249,10 @@ $pageTitle = 'Approvals - Admin Panel';
                 Marketplace
                 <span class="tab-badge" id="marketplaceCount">0</span>
             </button>
+            <button class="tab" onclick="switchTab('groups')">
+                Groups
+                <span class="tab-badge" id="groupsCount">0</span>
+            </button>
         </div>
 
         <!-- Tab Contents -->
@@ -305,6 +309,15 @@ $pageTitle = 'Approvals - Admin Panel';
                 </div>
             </div>
         </div>
+
+        <div id="groupsTab" class="tab-content">
+            <div id="groupsList">
+                <div class="text-center" style="padding: 3rem;">
+                    <div class="spinner"></div>
+                    <p style="margin-top: 1rem; color: var(--gray-dark);">Loading groups...</p>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -318,6 +331,7 @@ $pageTitle = 'Approvals - Admin Panel';
             loadJobs();
             loadNotices();
             loadMarketplace();
+            loadGroups();
         });
 
         function switchTab(tab) {
@@ -1235,6 +1249,128 @@ $pageTitle = 'Approvals - Admin Panel';
                 }
             } catch (error) {
                 console.error('Reject marketplace request failed:', error);
+                showAlert('Connection error', 'error');
+            }
+        }
+
+        async function loadGroups() {
+            try {
+                const response = await fetch('../api/approvals.php?action=get_pending_groups');
+                const data = await response.json();
+
+                const container = document.getElementById('groupsList');
+                document.getElementById('groupsCount').textContent = data.groups?.length || 0;
+
+                if (data.success && data.groups && data.groups.length > 0) {
+                    container.innerHTML = data.groups.map(group => `
+                        <div class="approval-card animate-slide-up">
+                            <div class="approval-header">
+                                <div class="approval-user">
+                                    <div class="avatar">
+                                        <span>${group.name ? group.name.charAt(0).toUpperCase() : 'G'}</span>
+                                    </div>
+                                    <div>
+                                        <h4>${escapeHtml(group.name)}</h4>
+                                        <p style="color: var(--gray-dark); font-size: 0.875rem;">
+                                            Created by ${escapeHtml(group.creator_name)}
+                                        </p>
+                                        <p style="color: var(--gray-dark); font-size: 0.8125rem;">
+                                            Created ${getTimeAgo(group.created_at)}
+                                            ${group.category ? ' • ' + escapeHtml(group.category) : ''}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="approval-actions">
+                                    <button class="btn btn-success" onclick="approveGroup(${group.id})">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                        </svg>
+                                        Approve
+                                    </button>
+                                    <button class="btn btn-danger" onclick="rejectGroup(${group.id})">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                                        </svg>
+                                        Reject
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="approval-content">
+                                <p style="color: var(--gray-dark); margin-bottom: 0.75rem;">${escapeHtml(group.description || 'No description provided')}</p>
+                            </div>
+                            ${group.image_url ? `<img src="../${group.image_url}" class="approval-image" alt="Group image">` : ''}
+                        </div>
+                    `).join('');
+                } else {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="9" cy="7" r="4"></circle>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                            </svg>
+                            <h3>All Caught Up!</h3>
+                            <p style="color: var(--gray-dark);">No pending groups</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading groups:', error);
+                document.getElementById('groupsList').innerHTML = `
+                    <div class="empty-state">
+                        <h3 style="color: var(--error);">Failed to load groups</h3>
+                        <p style="color: var(--gray-dark);">An error occurred: ${error.message}</p>
+                        <button class="btn btn-secondary mt-3" onclick="loadGroups()">Retry</button>
+                    </div>
+                `;
+            }
+        }
+
+        async function approveGroup(groupId) {
+            if (!confirm('Approve this group?')) return;
+
+            try {
+                const response = await fetch('../api/approvals.php?action=approve_group', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ group_id: groupId })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showAlert('Group approved', 'success');
+                    loadGroups();
+                } else {
+                    showAlert(data.message || 'Failed to approve group', 'error');
+                }
+            } catch (error) {
+                showAlert('Connection error', 'error');
+            }
+        }
+
+        async function rejectGroup(groupId) {
+            if (!confirm('Reject this group? This will delete the group permanently.')) return;
+            if (!confirm('Are you sure? This action cannot be undone!')) return;
+
+            try {
+                const response = await fetch('../api/approvals.php?action=reject_group', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ group_id: groupId })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showAlert('Group rejected and deleted', 'success');
+                    loadGroups();
+                } else {
+                    showAlert(data.message || 'Failed to reject group', 'error');
+                }
+            } catch (error) {
                 showAlert('Connection error', 'error');
             }
         }

@@ -72,6 +72,14 @@ require_once '../includes/header.php';
                     <label class="form-label">Description</label>
                     <textarea id="groupDescription" class="form-control" rows="4" required></textarea>
                 </div>
+                <div class="form-group">
+                    <label class="form-label">Category (Optional)</label>
+                    <input type="text" id="groupCategory" class="form-control" placeholder="e.g., Sports, Academic, Social">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Group Image (Optional)</label>
+                    <input type="file" id="groupImage" class="form-control" accept="image/*">
+                </div>
             </form>
         </div>
         <div class="modal-footer">
@@ -87,6 +95,9 @@ require_once '../includes/header.php';
     async function loadGroups() {
         try {
             const response = await fetch('../api/groups.php?action=get_all');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
             const data = await response.json();
             
             const grid = document.getElementById('groupsGrid');
@@ -94,16 +105,28 @@ require_once '../includes/header.php';
             if (data.success && data.groups && data.groups.length > 0) {
                 grid.innerHTML = data.groups.map(group => `
                     <div class="group-card animate-scale-in">
-                        <div class="group-cover"></div>
+                        <div class="group-cover" style="${group.image_url ? `background-image: url(../${group.image_url}); background-size: cover; background-position: center;` : ''}"></div>
                         <div class="group-content">
                             <h3 class="group-name">${escapeHtml(group.name)}</h3>
-                            <p style="color: var(--gray-dark); margin-bottom: 1rem;">${escapeHtml(group.description)}</p>
+                            <p style="color: var(--gray-dark); margin-bottom: 1rem;">${escapeHtml(group.description || 'No description')}</p>
                             <div class="group-meta">
                                 <span>👥 ${group.members_count || 0} members</span>
+                                ${group.category ? `<span>🏷️ ${escapeHtml(group.category)}</span>` : ''}
                             </div>
-                            <button class="btn btn-primary btn-block" onclick="joinGroup(${group.id})">
-                                Join Group
-                            </button>
+                            ${group.is_creator ? `
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <button class="btn btn-secondary btn-block" onclick="viewGroup(${group.id})">View</button>
+                                    <button class="btn btn-danger btn-block" onclick="deleteGroup(${group.id})">Delete</button>
+                                </div>
+                            ` : group.is_member ? `
+                                <button class="btn btn-secondary btn-block" onclick="leaveGroup(${group.id})">
+                                    Leave Group
+                                </button>
+                            ` : `
+                                <button class="btn btn-primary btn-block" onclick="joinGroup(${group.id})">
+                                    Join Group
+                                </button>
+                            `}
                         </div>
                     </div>
                 `).join('');
@@ -122,7 +145,14 @@ require_once '../includes/header.php';
                 `;
             }
         } catch (error) {
-            console.error('Error:', error);
+            console.error('Error loading groups:', error);
+            document.getElementById('groupsGrid').innerHTML = `
+                <div style="grid-column: 1/-1; text-align: center; padding: 3rem;">
+                    <h3 style="color: var(--error);">Failed to load groups</h3>
+                    <p style="color: var(--gray-dark);">An error occurred: ${error.message}</p>
+                    <button class="btn btn-secondary mt-3" onclick="loadGroups()">Retry</button>
+                </div>
+            `;
         }
     }
 
@@ -137,28 +167,41 @@ require_once '../includes/header.php';
     async function createGroup() {
         const name = document.getElementById('groupName').value.trim();
         const description = document.getElementById('groupDescription').value.trim();
+        const category = document.getElementById('groupCategory')?.value.trim() || '';
 
         if (!name || !description) {
-            alert('Please fill all fields');
+            showAlert('Please fill all required fields', 'error');
             return;
         }
 
         try {
+            const formData = new FormData();
+            formData.append('name', name);
+            formData.append('description', description);
+            if (category) formData.append('category', category);
+            
+            const imageInput = document.getElementById('groupImage');
+            if (imageInput && imageInput.files[0]) {
+                formData.append('image', imageInput.files[0]);
+            }
+
             const response = await fetch('../api/groups.php?action=create', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, description })
+                body: formData
             });
 
             const data = await response.json();
             if (data.success) {
                 closeCreateModal();
-                alert('Group created! Waiting for admin approval.');
+                showAlert('Group created! Waiting for admin approval.', 'success');
                 document.getElementById('createGroupForm').reset();
                 loadGroups();
+            } else {
+                showAlert(data.message || 'Failed to create group', 'error');
             }
         } catch (error) {
-            alert('Connection error');
+            console.error('Error creating group:', error);
+            showAlert('Connection error. Please try again.', 'error');
         }
     }
 
@@ -172,12 +215,77 @@ require_once '../includes/header.php';
 
             const data = await response.json();
             if (data.success) {
-                alert('Joined group!');
+                showAlert('Joined group successfully!', 'success');
                 loadGroups();
+            } else {
+                showAlert(data.message || 'Failed to join group', 'error');
             }
         } catch (error) {
-            console.error('Error:', error);
+            console.error('Error joining group:', error);
+            showAlert('Connection error. Please try again.', 'error');
         }
+    }
+
+    async function leaveGroup(groupId) {
+        if (!confirm('Are you sure you want to leave this group?')) return;
+
+        try {
+            const response = await fetch('../api/groups.php?action=leave', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ group_id: groupId })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                showAlert('Left group successfully', 'success');
+                loadGroups();
+            } else {
+                showAlert(data.message || 'Failed to leave group', 'error');
+            }
+        } catch (error) {
+            console.error('Error leaving group:', error);
+            showAlert('Connection error. Please try again.', 'error');
+        }
+    }
+
+    async function deleteGroup(groupId) {
+        if (!confirm('Are you sure you want to delete this group? This action cannot be undone!')) return;
+        if (!confirm('This will permanently delete the group and all its data. Continue?')) return;
+
+        try {
+            const response = await fetch('../api/groups.php?action=delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ group_id: groupId })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                showAlert('Group deleted successfully', 'success');
+                loadGroups();
+            } else {
+                showAlert(data.message || 'Failed to delete group', 'error');
+            }
+        } catch (error) {
+            console.error('Error deleting group:', error);
+            showAlert('Connection error. Please try again.', 'error');
+        }
+    }
+
+    function viewGroup(groupId) {
+        window.location.href = `group-detail.php?id=${groupId}`;
+    }
+
+    function showAlert(message, type) {
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type} animate-slide-down`;
+        alert.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px; padding: 1rem; border-radius: 12px; box-shadow: var(--shadow-lg);';
+        alert.style.background = type === 'success' ? 'var(--success)' : 'var(--error)';
+        alert.style.color = 'white';
+        alert.innerHTML = `<span>${message}</span>`;
+        document.body.appendChild(alert);
+        setTimeout(() => alert.remove(), 3000);
     }
 
     function escapeHtml(text) {

@@ -2,6 +2,7 @@
 session_start();
 require_once '../includes/config.php';
 require_once '../includes/db.php';
+require_once '../includes/functions.php';
 
 header('Content-Type: application/json');
 
@@ -15,38 +16,458 @@ $db = Database::getInstance();
 
 switch ($action) {
     case 'get_all':
-        $sql = "SELECT g.*, (SELECT COUNT(*) FROM group_members WHERE group_id = g.id) as members_count FROM groups g WHERE is_approved = 1 ORDER BY created_at DESC";
-        $groups = $db->query($sql);
-        echo json_encode(['success' => true, 'groups' => $groups ?: []]);
+        getAllGroups($db);
         break;
-
+    case 'get_by_id':
+        getGroupById($db);
+        break;
     case 'get_user_groups':
-        // Get groups where user is a member
-        $userId = $_SESSION['user_id'];
-        $sql = "SELECT g.*, (SELECT COUNT(*) FROM group_members WHERE group_id = g.id) as members_count
-                FROM groups g
-                INNER JOIN group_members gm ON g.id = gm.group_id
-                WHERE g.is_approved = 1 AND gm.user_id = ?
-                ORDER BY g.created_at DESC
-                LIMIT 10";
-        $groups = $db->query($sql, [$userId]);
-        echo json_encode(['success' => true, 'groups' => $groups ?: []]);
+        getUserGroups($db);
         break;
-
+    case 'get_members':
+        getGroupMembers($db);
+        break;
     case 'create':
-        $data = json_decode(file_get_contents('php://input'), true);
-        $sql = "INSERT INTO groups (name, description, creator_id, is_approved, created_at) VALUES (?, ?, ?, 0, NOW())";
-        $result = $db->query($sql, [$data['name'], $data['description'], $_SESSION['user_id']]);
-        echo json_encode(['success' => $result ? true : false]);
+        createGroup($db);
         break;
-
+    case 'update':
+        updateGroup($db);
+        break;
+    case 'delete':
+        deleteGroup($db);
+        break;
     case 'join':
-        $data = json_decode(file_get_contents('php://input'), true);
-        $sql = "INSERT INTO group_members (group_id, user_id, joined_at) VALUES (?, ?, NOW())";
-        $result = $db->query($sql, [$data['group_id'], $_SESSION['user_id']]);
-        echo json_encode(['success' => $result ? true : false]);
+        joinGroup($db);
         break;
-
+    case 'leave':
+        leaveGroup($db);
+        break;
+    case 'check_membership':
+        checkMembership($db);
+        break;
     default:
         echo json_encode(['success' => false, 'message' => 'Invalid action']);
+}
+
+function getAllGroups($db)
+{
+    $userId = $_SESSION['user_id'];
+    
+    $sql = "SELECT g.*, 
+                   u.full_name as creator_name,
+                   (SELECT COUNT(*) FROM group_members WHERE group_id = g.id) as members_count,
+                   (SELECT COUNT(*) FROM group_members WHERE group_id = g.id AND user_id = ?) as is_member
+            FROM groups g
+            INNER JOIN users u ON g.creator_id = u.id
+            WHERE g.is_approved = 1
+            ORDER BY g.created_at DESC";
+    
+    $groups = $db->query($sql, [$userId]);
+    
+    if ($groups) {
+        foreach ($groups as &$group) {
+            $group['is_member'] = (bool)($group['is_member'] ?? 0);
+            $group['is_creator'] = ($group['creator_id'] == $userId);
+        }
+    }
+    
+    echo json_encode(['success' => true, 'groups' => $groups ?: []]);
+}
+
+function getGroupById($db)
+{
+    $groupId = intval($_GET['group_id'] ?? 0);
+    $userId = $_SESSION['user_id'];
+    
+    if (!$groupId) {
+        echo json_encode(['success' => false, 'message' => 'Invalid group ID']);
+        return;
+    }
+    
+    $sql = "SELECT g.*, 
+                   u.full_name as creator_name,
+                   (SELECT COUNT(*) FROM group_members WHERE group_id = g.id) as members_count,
+                   (SELECT COUNT(*) FROM group_members WHERE group_id = g.id AND user_id = ?) as is_member,
+                   (SELECT role FROM group_members WHERE group_id = g.id AND user_id = ?) as user_role
+            FROM groups g
+            INNER JOIN users u ON g.creator_id = u.id
+            WHERE g.id = ? AND g.is_approved = 1";
+    
+    $group = $db->query($sql, [$userId, $userId, $groupId]);
+    
+    if ($group && !empty($group)) {
+        $group[0]['is_member'] = (bool)($group[0]['is_member'] ?? 0);
+        $group[0]['is_creator'] = ($group[0]['creator_id'] == $userId);
+        echo json_encode(['success' => true, 'group' => $group[0]]);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Group not found']);
+    }
+}
+
+function getUserGroups($db)
+{
+    $userId = $_SESSION['user_id'];
+    
+    $sql = "SELECT g.*, 
+                   (SELECT COUNT(*) FROM group_members WHERE group_id = g.id) as members_count,
+                   gm.role as user_role
+            FROM groups g
+            INNER JOIN group_members gm ON g.id = gm.group_id
+            WHERE g.is_approved = 1 AND gm.user_id = ?
+            ORDER BY g.created_at DESC
+            LIMIT 10";
+    
+    $groups = $db->query($sql, [$userId]);
+    
+    echo json_encode(['success' => true, 'groups' => $groups ?: []]);
+}
+
+function getGroupMembers($db)
+{
+    $groupId = intval($_GET['group_id'] ?? 0);
+    
+    if (!$groupId) {
+        echo json_encode(['success' => false, 'message' => 'Invalid group ID']);
+        return;
+    }
+    
+    $sql = "SELECT u.id, u.full_name, u.profile_image, u.role, gm.role as member_role, gm.joined_at
+            FROM group_members gm
+            INNER JOIN users u ON gm.user_id = u.id
+            WHERE gm.group_id = ? AND u.is_approved = 1
+            ORDER BY 
+                CASE gm.role
+                    WHEN 'admin' THEN 1
+                    WHEN 'moderator' THEN 2
+                    ELSE 3
+                END,
+                gm.joined_at ASC";
+    
+    $members = $db->query($sql, [$groupId]);
+    
+    echo json_encode(['success' => true, 'members' => $members ?: []]);
+}
+
+function createGroup($db)
+{
+    $userId = $_SESSION['user_id'];
+    
+    // Handle both FormData (multipart/form-data) and JSON
+    $input = file_get_contents('php://input');
+    $data = json_decode($input, true);
+    
+    // If JSON decode failed or empty, try $_POST (for FormData)
+    if ($data === null || empty($data)) {
+        $data = $_POST;
+    }
+    
+    $name = trim($data['name'] ?? '');
+    $description = trim($data['description'] ?? '');
+    $category = trim($data['category'] ?? '');
+    
+    if (empty($name) || empty($description)) {
+        echo json_encode(['success' => false, 'message' => 'Name and description are required']);
+        return;
+    }
+    
+    // Handle image upload if provided
+    $imageUrl = null;
+    if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+        $uploadDir = '../assets/uploads/groups/';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0777, true);
+        }
+        
+        $fileExt = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
+        $fileName = uniqid() . '.' . $fileExt;
+        $filePath = $uploadDir . $fileName;
+        
+        if (move_uploaded_file($_FILES['image']['tmp_name'], $filePath)) {
+            $imageUrl = 'assets/uploads/groups/' . $fileName;
+        }
+    }
+    
+    $sql = "INSERT INTO groups (name, description, category, creator_id, image_url, is_approved, created_at) 
+            VALUES (?, ?, ?, ?, ?, 0, NOW())";
+    
+    $result = $db->query($sql, [$name, $description, $category, $userId, $imageUrl]);
+    
+    if ($result) {
+        $groupId = $db->getConnection()->insert_id;
+        
+        // Add creator as admin member
+        $memberSql = "INSERT INTO group_members (group_id, user_id, role, joined_at) VALUES (?, ?, 'admin', NOW())";
+        $db->query($memberSql, [$groupId, $userId]);
+        
+        // Update members count
+        $updateCountSql = "UPDATE groups SET members_count = (SELECT COUNT(*) FROM group_members WHERE group_id = ?) WHERE id = ?";
+        $db->query($updateCountSql, [$groupId, $groupId]);
+        
+        echo json_encode([
+            'success' => true,
+            'message' => 'Group created successfully! Waiting for admin approval.',
+            'group_id' => $groupId
+        ]);
+    } else {
+        error_log("Database error in createGroup: " . $db->getConnection()->error);
+        echo json_encode(['success' => false, 'message' => 'Failed to create group']);
+    }
+}
+
+function updateGroup($db)
+{
+    $userId = $_SESSION['user_id'];
+    $data = json_decode(file_get_contents('php://input'), true);
+    
+    $groupId = intval($data['group_id'] ?? 0);
+    $name = trim($data['name'] ?? '');
+    $description = trim($data['description'] ?? '');
+    $category = trim($data['category'] ?? '');
+    
+    if (!$groupId) {
+        echo json_encode(['success' => false, 'message' => 'Invalid group ID']);
+        return;
+    }
+    
+    // Check if user is creator or admin
+    $checkSql = "SELECT creator_id FROM groups WHERE id = ?";
+    $group = $db->query($checkSql, [$groupId]);
+    
+    if (!$group || empty($group)) {
+        echo json_encode(['success' => false, 'message' => 'Group not found']);
+        return;
+    }
+    
+    $isCreator = ($group[0]['creator_id'] == $userId);
+    
+    if (!$isCreator) {
+        // Check if user is admin/moderator
+        $memberSql = "SELECT role FROM group_members WHERE group_id = ? AND user_id = ?";
+        $member = $db->query($memberSql, [$groupId, $userId]);
+        
+        if (!$member || empty($member) || !in_array($member[0]['role'], ['admin', 'moderator'])) {
+            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            return;
+        }
+    }
+    
+    // Handle image upload if provided
+    $imageUrl = null;
+    if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+        $uploadDir = '../assets/uploads/groups/';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0777, true);
+        }
+        
+        // Delete old image if exists
+        $oldImageSql = "SELECT image_url FROM groups WHERE id = ?";
+        $oldImage = $db->query($oldImageSql, [$groupId]);
+        if ($oldImage && !empty($oldImage) && $oldImage[0]['image_url']) {
+            $oldPath = '../' . $oldImage[0]['image_url'];
+            if (file_exists($oldPath)) {
+                unlink($oldPath);
+            }
+        }
+        
+        $fileExt = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
+        $fileName = uniqid() . '.' . $fileExt;
+        $filePath = $uploadDir . $fileName;
+        
+        if (move_uploaded_file($_FILES['image']['tmp_name'], $filePath)) {
+            $imageUrl = 'assets/uploads/groups/' . $fileName;
+        }
+    }
+    
+    $updateFields = [];
+    $params = [];
+    
+    if (!empty($name)) {
+        $updateFields[] = "name = ?";
+        $params[] = $name;
+    }
+    if (!empty($description)) {
+        $updateFields[] = "description = ?";
+        $params[] = $description;
+    }
+    if (!empty($category)) {
+        $updateFields[] = "category = ?";
+        $params[] = $category;
+    }
+    if ($imageUrl) {
+        $updateFields[] = "image_url = ?";
+        $params[] = $imageUrl;
+    }
+    
+    if (empty($updateFields)) {
+        echo json_encode(['success' => false, 'message' => 'No fields to update']);
+        return;
+    }
+    
+    $params[] = $groupId;
+    $sql = "UPDATE groups SET " . implode(', ', $updateFields) . " WHERE id = ?";
+    
+    $result = $db->query($sql, $params);
+    
+    if ($result) {
+        echo json_encode(['success' => true, 'message' => 'Group updated successfully']);
+    } else {
+        error_log("Database error in updateGroup: " . $db->getConnection()->error);
+        echo json_encode(['success' => false, 'message' => 'Failed to update group']);
+    }
+}
+
+function deleteGroup($db)
+{
+    $userId = $_SESSION['user_id'];
+    $data = json_decode(file_get_contents('php://input'), true);
+    
+    $groupId = intval($data['group_id'] ?? 0);
+    
+    if (!$groupId) {
+        echo json_encode(['success' => false, 'message' => 'Invalid group ID']);
+        return;
+    }
+    
+    // Check if user is creator
+    $checkSql = "SELECT creator_id, image_url FROM groups WHERE id = ?";
+    $group = $db->query($checkSql, [$groupId]);
+    
+    if (!$group || empty($group)) {
+        echo json_encode(['success' => false, 'message' => 'Group not found']);
+        return;
+    }
+    
+    if ($group[0]['creator_id'] != $userId) {
+        echo json_encode(['success' => false, 'message' => 'Only the creator can delete the group']);
+        return;
+    }
+    
+    // Delete image if exists
+    if ($group[0]['image_url']) {
+        $imagePath = '../' . $group[0]['image_url'];
+        if (file_exists($imagePath)) {
+            unlink($imagePath);
+        }
+    }
+    
+    $sql = "DELETE FROM groups WHERE id = ?";
+    $result = $db->query($sql, [$groupId]);
+    
+    if ($result) {
+        echo json_encode(['success' => true, 'message' => 'Group deleted successfully']);
+    } else {
+        error_log("Database error in deleteGroup: " . $db->getConnection()->error);
+        echo json_encode(['success' => false, 'message' => 'Failed to delete group']);
+    }
+}
+
+function joinGroup($db)
+{
+    $userId = $_SESSION['user_id'];
+    $data = json_decode(file_get_contents('php://input'), true);
+    
+    $groupId = intval($data['group_id'] ?? 0);
+    
+    if (!$groupId) {
+        echo json_encode(['success' => false, 'message' => 'Invalid group ID']);
+        return;
+    }
+    
+    // Check if group exists and is approved
+    $groupSql = "SELECT id, is_approved FROM groups WHERE id = ?";
+    $group = $db->query($groupSql, [$groupId]);
+    
+    if (!$group || empty($group)) {
+        echo json_encode(['success' => false, 'message' => 'Group not found']);
+        return;
+    }
+    
+    if (!$group[0]['is_approved']) {
+        echo json_encode(['success' => false, 'message' => 'Group is not approved yet']);
+        return;
+    }
+    
+    // Check if already a member
+    $checkSql = "SELECT id FROM group_members WHERE group_id = ? AND user_id = ?";
+    $existing = $db->query($checkSql, [$groupId, $userId]);
+    
+    if ($existing && !empty($existing)) {
+        echo json_encode(['success' => false, 'message' => 'Already a member of this group']);
+        return;
+    }
+    
+    $sql = "INSERT INTO group_members (group_id, user_id, role, joined_at) VALUES (?, ?, 'member', NOW())";
+    $result = $db->query($sql, [$groupId, $userId]);
+    
+    if ($result) {
+        // Update members count
+        $updateCountSql = "UPDATE groups SET members_count = (SELECT COUNT(*) FROM group_members WHERE group_id = ?) WHERE id = ?";
+        $db->query($updateCountSql, [$groupId, $groupId]);
+        
+        echo json_encode(['success' => true, 'message' => 'Joined group successfully']);
+    } else {
+        error_log("Database error in joinGroup: " . $db->getConnection()->error);
+        echo json_encode(['success' => false, 'message' => 'Failed to join group']);
+    }
+}
+
+function leaveGroup($db)
+{
+    $userId = $_SESSION['user_id'];
+    $data = json_decode(file_get_contents('php://input'), true);
+    
+    $groupId = intval($data['group_id'] ?? 0);
+    
+    if (!$groupId) {
+        echo json_encode(['success' => false, 'message' => 'Invalid group ID']);
+        return;
+    }
+    
+    // Check if user is creator
+    $checkSql = "SELECT creator_id FROM groups WHERE id = ?";
+    $group = $db->query($checkSql, [$groupId]);
+    
+    if (!$group || empty($group)) {
+        echo json_encode(['success' => false, 'message' => 'Group not found']);
+        return;
+    }
+    
+    if ($group[0]['creator_id'] == $userId) {
+        echo json_encode(['success' => false, 'message' => 'Creator cannot leave the group. Delete the group instead.']);
+        return;
+    }
+    
+    $sql = "DELETE FROM group_members WHERE group_id = ? AND user_id = ?";
+    $result = $db->query($sql, [$groupId, $userId]);
+    
+    if ($result) {
+        // Update members count
+        $updateCountSql = "UPDATE groups SET members_count = (SELECT COUNT(*) FROM group_members WHERE group_id = ?) WHERE id = ?";
+        $db->query($updateCountSql, [$groupId, $groupId]);
+        
+        echo json_encode(['success' => true, 'message' => 'Left group successfully']);
+    } else {
+        error_log("Database error in leaveGroup: " . $db->getConnection()->error);
+        echo json_encode(['success' => false, 'message' => 'Failed to leave group']);
+    }
+}
+
+function checkMembership($db)
+{
+    $userId = $_SESSION['user_id'];
+    $groupId = intval($_GET['group_id'] ?? 0);
+    
+    if (!$groupId) {
+        echo json_encode(['success' => false, 'message' => 'Invalid group ID']);
+        return;
+    }
+    
+    $sql = "SELECT role FROM group_members WHERE group_id = ? AND user_id = ?";
+    $member = $db->query($sql, [$groupId, $userId]);
+    
+    echo json_encode([
+        'success' => true,
+        'is_member' => ($member && !empty($member)),
+        'role' => $member && !empty($member) ? $member[0]['role'] : null
+    ]);
 }

@@ -90,8 +90,15 @@ require_once '../includes/header.php';
                         <circle cx="11" cy="11" r="8"></circle>
                         <path d="m21 21-4.35-4.35"></path>
                     </svg>
-                    <input type="text" id="searchConversations" placeholder="Search messages...">
+                    <input type="text" id="searchConversations" placeholder="Search conversations..." oninput="filterConversations(this.value)">
                 </div>
+                <button class="btn btn-primary btn-block" style="margin-top: 1rem;" onclick="openNewMessageModal()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    New Message
+                </button>
             </div>
             
             <div class="conversations-list" id="conversationsList">
@@ -161,33 +168,23 @@ require_once '../includes/header.php';
         }
     });
 
+    let allConversations = [];
+
     async function loadConversations() {
         try {
             const response = await fetch('../api/messages.php?action=get_conversations');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
             const data = await response.json();
             
             const container = document.getElementById('conversationsList');
             
             if (data.success && data.conversations && data.conversations.length > 0) {
-                container.innerHTML = data.conversations.map(conv => `
-                    <div class="conversation-item animate-slide-left" onclick="openChat(${conv.other_user_id})">
-                        <div class="conversation-avatar">
-                            <div class="avatar">
-                                <span>${conv.other_user_name.charAt(0).toUpperCase()}</span>
-                            </div>
-                            ${conv.is_online ? '<div class="online-indicator"></div>' : ''}
-                        </div>
-                        <div class="conversation-info">
-                            <div class="conversation-name">${escapeHtml(conv.other_user_name)}</div>
-                            <div class="conversation-preview">${escapeHtml(conv.last_message || 'No messages yet')}</div>
-                        </div>
-                        <div class="conversation-meta">
-                            <div class="conversation-time">${conv.last_message_time || ''}</div>
-                            ${conv.unread_count > 0 ? `<span class="unread-badge">${conv.unread_count}</span>` : ''}
-                        </div>
-                    </div>
-                `).join('');
+                allConversations = data.conversations;
+                renderConversations(allConversations);
             } else {
+                allConversations = [];
                 container.innerHTML = `
                     <div class="text-center" style="padding: 3rem;">
                         <p style="color: var(--gray-dark);">No conversations yet</p>
@@ -198,8 +195,59 @@ require_once '../includes/header.php';
                 `;
             }
         } catch (error) {
-            console.error('Error:', error);
+            console.error('Error loading conversations:', error);
+            document.getElementById('conversationsList').innerHTML = `
+                <div class="text-center" style="padding: 3rem;">
+                    <h3 style="color: var(--error);">Failed to load conversations</h3>
+                    <p style="color: var(--gray-dark);">An error occurred: ${error.message}</p>
+                    <button class="btn btn-secondary mt-3" onclick="loadConversations()">Retry</button>
+                </div>
+            `;
         }
+    }
+
+    function renderConversations(conversations) {
+        const container = document.getElementById('conversationsList');
+        if (conversations.length === 0) {
+            container.innerHTML = `
+                <div class="text-center" style="padding: 3rem;">
+                    <p style="color: var(--gray-dark);">No conversations found</p>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = conversations.map(conv => `
+            <div class="conversation-item animate-slide-left" onclick="openChat(${conv.other_user_id})">
+                <div class="conversation-avatar">
+                    <div class="avatar" style="${conv.profile_image && conv.profile_image !== 'default-avatar.png' ? `background-image: url(../${conv.profile_image});` : ''}">
+                        ${!conv.profile_image || conv.profile_image === 'default-avatar.png' ? `<span>${conv.other_user_name.charAt(0).toUpperCase()}</span>` : ''}
+                    </div>
+                    ${conv.is_online ? '<div class="online-indicator"></div>' : ''}
+                </div>
+                <div class="conversation-info">
+                    <div class="conversation-name">${escapeHtml(conv.other_user_name)}</div>
+                    <div class="conversation-preview">${escapeHtml(conv.last_message || 'No messages yet')}</div>
+                </div>
+                <div class="conversation-meta">
+                    <div class="conversation-time">${conv.last_message_time || ''}</div>
+                    ${conv.unread_count > 0 ? `<span class="unread-badge">${conv.unread_count}</span>` : ''}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function filterConversations(query) {
+        if (!query.trim()) {
+            renderConversations(allConversations);
+            return;
+        }
+        
+        const filtered = allConversations.filter(conv => 
+            conv.other_user_name.toLowerCase().includes(query.toLowerCase()) ||
+            (conv.last_message && conv.last_message.toLowerCase().includes(query.toLowerCase()))
+        );
+        renderConversations(filtered);
     }
 
     async function openChat(userId) {
@@ -234,10 +282,23 @@ require_once '../includes/header.php';
             if (data.success) {
                 const user = data.user;
                 document.getElementById('chatUserName').textContent = user.full_name;
-                document.getElementById('chatAvatar').innerHTML = `<span>${user.full_name.charAt(0).toUpperCase()}</span>`;
+                const avatar = document.getElementById('chatAvatar');
+                if (user.profile_image && user.profile_image !== 'default-avatar.png') {
+                    avatar.style.backgroundImage = `url(../${user.profile_image})`;
+                    avatar.innerHTML = '';
+                } else {
+                    avatar.style.backgroundImage = '';
+                    avatar.innerHTML = `<span>${user.full_name.charAt(0).toUpperCase()}</span>`;
+                }
+                
+                // Update online status
+                const statusEl = document.getElementById('chatUserStatus');
+                if (statusEl) {
+                    statusEl.textContent = user.is_active ? 'Online' : 'Offline';
+                }
             }
         } catch (error) {
-            console.error('Error:', error);
+            console.error('Error loading user info:', error);
         }
     }
 
@@ -250,21 +311,26 @@ require_once '../includes/header.php';
             const wasScrolledToBottom = container.scrollHeight - container.scrollTop === container.clientHeight;
             
             if (data.success && data.messages) {
-                container.innerHTML = data.messages.map(msg => `
-                    <div class="message ${msg.is_sent ? 'sent' : 'received'}">
-                        <div class="avatar" style="flex-shrink: 0;">
-                            <span>${msg.sender_name.charAt(0).toUpperCase()}</span>
+                container.innerHTML = data.messages.map(msg => {
+                    const senderInitial = msg.sender_name ? msg.sender_name.charAt(0).toUpperCase() : 'U';
+                    return `
+                        <div class="message ${msg.is_sent ? 'sent' : 'received'}">
+                            <div class="avatar" style="flex-shrink: 0;">
+                                <span>${senderInitial}</span>
+                            </div>
+                            <div>
+                                <div class="message-content">${escapeHtml(msg.content || msg.message || '')}</div>
+                                <div class="message-time">${getTimeAgo(msg.created_at)}</div>
+                            </div>
                         </div>
-                        <div>
-                            <div class="message-content">${escapeHtml(msg.content)}</div>
-                            <div class="message-time">${getTimeAgo(msg.created_at)}</div>
-                        </div>
-                    </div>
-                `).join('');
+                    `;
+                }).join('');
                 
                 if (wasScrolledToBottom || data.messages.length === 1) {
                     container.scrollTop = container.scrollHeight;
                 }
+            } else if (!data.success) {
+                console.error('Error loading messages:', data.message);
             }
         } catch (error) {
             console.error('Error:', error);
@@ -275,7 +341,12 @@ require_once '../includes/header.php';
         const input = document.getElementById('messageInput');
         const content = input.value.trim();
         
-        if (!content || !currentChatUserId) return;
+        if (!content || !currentChatUserId) {
+            if (!content) {
+                showAlert('Please enter a message', 'error');
+            }
+            return;
+        }
         
         try {
             const response = await fetch('../api/messages.php?action=send_message', {
@@ -293,10 +364,92 @@ require_once '../includes/header.php';
                 input.value = '';
                 loadMessages(currentChatUserId);
                 loadConversations();
+            } else {
+                showAlert(data.message || 'Failed to send message', 'error');
             }
         } catch (error) {
-            console.error('Error:', error);
+            console.error('Error sending message:', error);
+            showAlert('Connection error. Please try again.', 'error');
         }
+    }
+
+    async function openNewMessageModal() {
+        const modal = document.createElement('div');
+        modal.className = 'modal active';
+        modal.innerHTML = `
+            <div class="modal-backdrop" onclick="this.closest('.modal').remove()"></div>
+            <div class="modal-content" style="max-width: 500px;">
+                <div class="modal-header">
+                    <h3 class="modal-title">New Message</h3>
+                    <button class="modal-close" onclick="this.closest('.modal').remove()">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Search Users</label>
+                        <input type="text" id="searchUsersInput" class="form-control" placeholder="Type to search..." oninput="searchUsersForMessage(this.value)">
+                    </div>
+                    <div id="searchUsersResults" style="max-height: 400px; overflow-y: auto; margin-top: 1rem;"></div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        document.getElementById('searchUsersInput').focus();
+    }
+
+    let searchTimeout;
+    async function searchUsersForMessage(query) {
+        clearTimeout(searchTimeout);
+        const resultsDiv = document.getElementById('searchUsersResults');
+        
+        if (query.length < 2) {
+            resultsDiv.innerHTML = '<p style="text-align: center; color: var(--gray-dark); padding: 2rem;">Type at least 2 characters to search</p>';
+            return;
+        }
+        
+        searchTimeout = setTimeout(async () => {
+            try {
+                const response = await fetch(`../api/messages.php?action=search_users&query=${encodeURIComponent(query)}`);
+                const data = await response.json();
+                
+                if (data.success && data.users && data.users.length > 0) {
+                    resultsDiv.innerHTML = data.users.map(user => `
+                        <div class="conversation-item" onclick="startNewChat(${user.id}, '${escapeHtml(user.full_name)}')" style="cursor: pointer;">
+                            <div class="conversation-avatar">
+                                <div class="avatar" style="${user.profile_image && user.profile_image !== 'default-avatar.png' ? `background-image: url(../${user.profile_image});` : ''}">
+                                    ${!user.profile_image || user.profile_image === 'default-avatar.png' ? `<span>${user.full_name.charAt(0).toUpperCase()}</span>` : ''}
+                                </div>
+                                ${user.is_online ? '<div class="online-indicator"></div>' : ''}
+                            </div>
+                            <div class="conversation-info">
+                                <div class="conversation-name">${escapeHtml(user.full_name)}</div>
+                                <div class="conversation-preview" style="font-size: 0.75rem;">${escapeHtml(user.email)}</div>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    resultsDiv.innerHTML = '<p style="text-align: center; color: var(--gray-dark); padding: 2rem;">No users found</p>';
+                }
+            } catch (error) {
+                console.error('Error searching users:', error);
+                resultsDiv.innerHTML = '<p style="text-align: center; color: var(--error); padding: 2rem;">Error searching users</p>';
+            }
+        }, 300);
+    }
+
+    function startNewChat(userId, userName) {
+        document.querySelector('.modal.active')?.remove();
+        openChat(userId);
+    }
+
+    function showAlert(message, type) {
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type} animate-slide-down`;
+        alert.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px; padding: 1rem; border-radius: 12px; box-shadow: var(--shadow-lg);';
+        alert.style.background = type === 'success' ? 'var(--success)' : 'var(--error)';
+        alert.style.color = 'white';
+        alert.innerHTML = `<span>${message}</span>`;
+        document.body.appendChild(alert);
+        setTimeout(() => alert.remove(), 3000);
     }
 
     // Send message on Enter
