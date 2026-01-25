@@ -10,6 +10,12 @@ if (!isset($_SESSION['user_id']) || !$_SESSION['is_approved']) {
     exit;
 }
 
+// Prevent admins from accessing user dashboard
+if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin') {
+    header('Location: ../admin/index.php');
+    exit;
+}
+
 $db = Database::getInstance();
 $currentUserId = $_SESSION['user_id'];
 
