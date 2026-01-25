@@ -188,6 +188,24 @@ function toggleLike($db)
         $sql = "INSERT INTO post_likes (post_id, user_id, created_at) VALUES (?, ?, NOW())";
         $db->query($sql, [$postId, $userId]);
         $liked = true;
+        
+        // Create notification for post owner
+        $postSql = "SELECT user_id FROM posts WHERE id = ?";
+        $postData = $db->query($postSql, [$postId]);
+        if ($postData && $postData[0]['user_id'] != $userId) {
+            $userSql = "SELECT full_name FROM users WHERE id = ?";
+            $userData = $db->query($userSql, [$userId]);
+            $userName = $userData[0]['full_name'] ?? 'Someone';
+            
+            createNotification(
+                $postData[0]['user_id'],
+                'like',
+                'New Like',
+                "<strong>{$userName}</strong> liked your post",
+                $postId,
+                'post'
+            );
+        }
     }
 
     // Get updated likes count
@@ -220,6 +238,22 @@ function addComment($db)
         // Get user info for the comment
         $userSql = "SELECT full_name, role FROM users WHERE id = ?";
         $user = $db->query($userSql, [$userId]);
+        
+        // Create notification for post owner
+        $postSql = "SELECT user_id FROM posts WHERE id = ?";
+        $postData = $db->query($postSql, [$postId]);
+        if ($postData && $postData[0]['user_id'] != $userId) {
+            $userName = $user[0]['full_name'] ?? 'Someone';
+            
+            createNotification(
+                $postData[0]['user_id'],
+                'comment',
+                'New Comment',
+                "<strong>{$userName}</strong> commented on your post",
+                $postId,
+                'post'
+            );
+        }
 
         echo json_encode([
             'success' => true,

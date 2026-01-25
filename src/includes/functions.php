@@ -143,10 +143,32 @@ function jsonResponse($data, $status = 200) {
 
 // Create notification
 function createNotification($user_id, $type, $title, $message, $reference_id = null, $reference_type = null) {
-    $db = getDB();
-    $stmt = $db->prepare("INSERT INTO notifications (user_id, type, title, message, reference_id, reference_type) VALUES (?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("isssss", $user_id, $type, $title, $message, $reference_id, $reference_type);
-    return $stmt->execute();
+    try {
+        $db = Database::getInstance();
+        
+        $sql = "INSERT INTO notifications (user_id, type, title, message, reference_id, reference_type, created_at) 
+                VALUES (?, ?, ?, ?, ?, ?, NOW())";
+        
+        $db->query($sql, [$user_id, $type, $title, $message, $reference_id, $reference_type]);
+        
+        return true;
+    } catch (Exception $e) {
+        error_log("Error creating notification: " . $e->getMessage());
+        return false;
+    }
+}
+
+// Create bulk notifications
+function createBulkNotifications($userIds, $type, $title, $message, $referenceId = null, $referenceType = null) {
+    try {
+        foreach ($userIds as $userId) {
+            createNotification($userId, $type, $title, $message, $referenceId, $referenceType);
+        }
+        return true;
+    } catch (Exception $e) {
+        error_log("Error creating bulk notifications: " . $e->getMessage());
+        return false;
+    }
 }
 
 // Get unread notifications count

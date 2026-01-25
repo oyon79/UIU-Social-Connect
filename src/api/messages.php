@@ -38,6 +38,9 @@ switch ($action) {
     case 'get_all_users':
         getAllUsers($db);
         break;
+    case 'get_unread_count':
+        getUnreadMessageCount($db);
+        break;
     default:
         echo json_encode(['success' => false, 'message' => 'Invalid action']);
 }
@@ -322,6 +325,27 @@ function searchUsers($db)
         'success' => true,
         'users' => $users ?: []
     ]);
+}
+
+function getUnreadMessageCount($db)
+{
+    try {
+        $userId = $_SESSION['user_id'];
+
+        $sql = "SELECT COUNT(*) as count 
+                FROM messages 
+                WHERE receiver_id = ? AND is_read = 0";
+        
+        $result = $db->query($sql, [$userId]);
+
+        echo json_encode([
+            'success' => true,
+            'count' => (int)$result[0]['count']
+        ]);
+    } catch (Exception $e) {
+        error_log("Error getting unread message count: " . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => 'Failed to fetch count']);
+    }
 }
 
 function getTimeAgo($timestamp)
