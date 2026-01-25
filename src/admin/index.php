@@ -38,6 +38,12 @@ $totalJobs = $db->query($totalJobsSql)[0]['count'];
 $pendingJobsSql = "SELECT COUNT(*) as count FROM jobs WHERE is_approved = 0";
 $pendingJobs = $db->query($pendingJobsSql)[0]['count'];
 
+$totalDocumentsSql = "SELECT COUNT(*) as count FROM documents";
+$totalDocuments = $db->query($totalDocumentsSql)[0]['count'];
+
+$pendingDocumentsSql = "SELECT COUNT(*) as count FROM documents WHERE is_approved = 0 AND rejection_reason IS NULL";
+$pendingDocuments = $db->query($pendingDocumentsSql)[0]['count'];
+
 $pageTitle = 'Admin Dashboard - UIU Social Connect';
 ?>
 
@@ -272,6 +278,24 @@ $pageTitle = 'Admin Dashboard - UIU Social Connect';
             color: var(--gray-dark);
         }
 
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 20px;
+            height: 20px;
+            padding: 0 6px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            margin-left: 0.5rem;
+        }
+
+        .badge-warning {
+            background: #F59E0B;
+            color: white;
+        }
+
         @media (max-width: 768px) {
             .stats-grid {
                 grid-template-columns: 1fr;
@@ -305,8 +329,8 @@ $pageTitle = 'Admin Dashboard - UIU Social Connect';
                     <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
                 </svg>
                 Approvals
-                <?php if ($pendingUsers + $pendingPosts + $pendingEvents + $pendingJobs > 0): ?>
-                    <span class="badge badge-warning"><?php echo $pendingUsers + $pendingPosts + $pendingEvents + $pendingJobs; ?></span>
+                <?php if ($pendingUsers + $pendingPosts + $pendingEvents + $pendingJobs + $pendingDocuments > 0): ?>
+                    <span class="badge badge-warning"><?php echo $pendingUsers + $pendingPosts + $pendingEvents + $pendingJobs + $pendingDocuments; ?></span>
                 <?php endif; ?>
             </a>
             <a href="users.php" class="admin-nav-link">
@@ -324,6 +348,19 @@ $pageTitle = 'Admin Dashboard - UIU Social Connect';
                     <polyline points="14 2 14 8 20 8"></polyline>
                 </svg>
                 Content
+            </a>
+            <a href="documents.php" class="admin-nav-link">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+                Documents
+                <?php if ($pendingDocuments > 0): ?>
+                    <span class="badge badge-warning"><?php echo $pendingDocuments; ?></span>
+                <?php endif; ?>
             </a>
             <a href="../dashboard/newsfeed.php" class="admin-nav-link">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -427,6 +464,32 @@ $pageTitle = 'Admin Dashboard - UIU Social Connect';
                 <?php if ($pendingJobs > 0): ?>
                     <span class="stat-card-badge pending">
                         <?php echo $pendingJobs; ?> pending approval
+                    </span>
+                <?php else: ?>
+                    <span class="stat-card-badge success">
+                        ✓ All approved
+                    </span>
+                <?php endif; ?>
+            </div>
+
+            <div class="stat-card animate-scale-in" style="animation-delay: 0.6s;">
+                <div class="stat-card-header">
+                    <div>
+                        <div class="stat-card-value"><?php echo $totalDocuments; ?></div>
+                        <div class="stat-card-label">Total Documents</div>
+                    </div>
+                    <div class="stat-card-icon">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--primary-orange)" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                        </svg>
+                    </div>
+                </div>
+                <?php if ($pendingDocuments > 0): ?>
+                    <span class="stat-card-badge pending">
+                        <?php echo $pendingDocuments; ?> pending approval
                     </span>
                 <?php else: ?>
                     <span class="stat-card-badge success">
