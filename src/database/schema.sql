@@ -21,6 +21,8 @@ CREATE TABLE users (
     student_id VARCHAR(50),
     department VARCHAR(100),
     batch VARCHAR(20),
+    trimester INT,
+    skills JSON,
     bio TEXT,
     profile_image VARCHAR(255) DEFAULT 'default-avatar.png',
     cover_image VARCHAR(255),
@@ -34,7 +36,9 @@ CREATE TABLE users (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_email (email),
     INDEX idx_approved (is_approved),
-    INDEX idx_role (role)
+    INDEX idx_role (role),
+    INDEX idx_batch (batch),
+    INDEX idx_department (department)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Admin Users
@@ -189,10 +193,16 @@ CREATE TABLE groups (
     name VARCHAR(255) NOT NULL,
     description TEXT,
     category VARCHAR(100),
+    group_type ENUM('course', 'skill', 'project', 'study', 'hackathon', 'research', 'startup', 'practice', 'general') DEFAULT 'general',
     creator_id INT NOT NULL,
     image_url VARCHAR(255),
     cover_image VARCHAR(255),
     members_count INT DEFAULT 1,
+    required_skills JSON,
+    is_auto_created TINYINT(1) DEFAULT 0,
+    course_code VARCHAR(50),
+    trimester_number INT,
+    department VARCHAR(100),
     is_approved TINYINT(1) DEFAULT 0,
     approved_by INT NULL,
     approved_at TIMESTAMP NULL,
@@ -200,7 +210,10 @@ CREATE TABLE groups (
     CONSTRAINT fk_groups_creator FOREIGN KEY (creator_id) REFERENCES users(id) ON DELETE CASCADE,
     CONSTRAINT fk_groups_approved_by FOREIGN KEY (approved_by) REFERENCES admins(id) ON DELETE SET NULL,
     INDEX idx_approved (is_approved),
-    INDEX idx_category (category)
+    INDEX idx_category (category),
+    INDEX idx_group_type (group_type),
+    INDEX idx_course (course_code, trimester_number),
+    INDEX idx_is_auto_created (is_auto_created)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Group Members
@@ -363,5 +376,30 @@ CREATE TABLE activity_logs (
     INDEX idx_user_id (user_id),
     INDEX idx_admin_id (admin_id),
     INDEX idx_action (action),
+    INDEX idx_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Documents/Notes System
+CREATE TABLE documents (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    note_type ENUM('Lecture Notes', 'Class Slides (PPT)', 'Lab Manual', 'Assignment Solution', 'Project Documentation', 'Research Paper', 'Cheat Sheet', 'Book / PDF', 'Question Bank', 'Resume / CV Template', 'Design Resource', 'Code Snippet / Zip', 'Other') NOT NULL,
+    note_name VARCHAR(255) NOT NULL,
+    description TEXT,
+    file_path VARCHAR(255) NOT NULL,
+    file_size INT,
+    file_type VARCHAR(100),
+    download_count INT DEFAULT 0,
+    is_approved TINYINT(1) DEFAULT 0,
+    approved_by INT NULL,
+    approved_at TIMESTAMP NULL,
+    rejection_reason TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_documents_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_documents_approved_by FOREIGN KEY (approved_by) REFERENCES admins(id) ON DELETE SET NULL,
+    INDEX idx_approved (is_approved),
+    INDEX idx_note_type (note_type),
+    INDEX idx_user_id (user_id),
     INDEX idx_created (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

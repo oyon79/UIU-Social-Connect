@@ -256,4 +256,97 @@ function verifyPasswordResetToken($token) {
     
     return false;
 }
+
+/**
+ * Calculate running trimester based on batch and current date
+ * UIU has 3 trimesters per year:
+ * - January – April (Trimester 1)
+ * - May – August (Trimester 2)
+ * - September – December (Trimester 3)
+ * 
+ * @param string $batch Batch number (e.g., "222", "231", "241")
+ * @return int Calculated trimester number
+ */
+function calculateRunningTrimester($batch) {
+    // Current date
+    $currentYear = date('Y');
+    $currentMonth = date('n'); // 1-12
+    
+    // Extract year and batch number from batch code
+    // Format: XYZ where X = year-2000, YZ = batch
+    // 222 = 2022, 2nd batch
+    // 231 = 2023, 1st batch
+    // 261 = 2026, 1st batch
+    
+    $batchYear = 2000 + (int)substr($batch, 0, 2);
+    $batchNumber = (int)substr($batch, 2, 1);
+    
+    // Calculate starting trimester based on batch number
+    // Batch 1 starts in January (Tri 1)
+    // Batch 2 starts in May (Tri 2)
+    // Batch 3 starts in September (Tri 3)
+    $startingTrimester = $batchNumber;
+    
+    // Calculate years passed since batch started
+    $yearsPassed = $currentYear - $batchYear;
+    
+    // Determine current trimester of the year
+    if ($currentMonth >= 1 && $currentMonth <= 4) {
+        $currentTrimesterInYear = 1;
+    } elseif ($currentMonth >= 5 && $currentMonth <= 8) {
+        $currentTrimesterInYear = 2;
+    } else {
+        $currentTrimesterInYear = 3;
+    }
+    
+    // Calculate total trimesters passed
+    $trimestersPassed = ($yearsPassed * 3) + ($currentTrimesterInYear - $startingTrimester);
+    
+    // Running trimester is trimesters passed + 1 (current)
+    $runningTrimester = $trimestersPassed + 1;
+    
+    // Cap at 12 trimesters maximum
+    return min($runningTrimester, 12);
+}
+
+/**
+ * Get batch to trimester mapping as of today
+ * 
+ * @return array Associative array of batch => trimester
+ */
+function getBatchTrimesterMapping() {
+    return [
+        '222' => 12,
+        '223' => 11,
+        '231' => 10,
+        '232' => 9,
+        '233' => 8,
+        '241' => 7,
+        '242' => 6,
+        '243' => 5,
+        '251' => 4,
+        '252' => 3,
+        '253' => 2,
+        '261' => 1,
+        '262' => 0 // Not started
+    ];
+}
+
+/**
+ * Get running trimester for a batch using predefined mapping
+ * Fallback to calculation if not in mapping
+ * 
+ * @param string $batch Batch number
+ * @return int Running trimester
+ */
+function getRunningTrimester($batch) {
+    $mapping = getBatchTrimesterMapping();
+    
+    if (isset($mapping[$batch])) {
+        return $mapping[$batch];
+    }
+    
+    // Fallback to calculation
+    return calculateRunningTrimester($batch);
+}
 ?>

@@ -171,21 +171,90 @@ function searchUsers($db)
 {
     $query = $_GET['query'] ?? '';
     $currentUserId = $_SESSION['user_id'];
+    $skills = $_GET['skills'] ?? ''; // Comma-separated skill list
+    $batch = $_GET['batch'] ?? '';
+    $department = $_GET['department'] ?? '';
+    $trimester = $_GET['trimester'] ?? '';
+    $sortBy = $_GET['sort_by'] ?? 'name'; // name, batch, trimester, skills
 
-    if (strlen($query) < 2) {
-        echo json_encode(['success' => true, 'users' => []]);
-        return;
+    // Build WHERE conditions
+    $conditions = ["id != ?", "is_approved = 1"];
+    $params = [$currentUserId];
+
+    // Text search
+    if (strlen($query) >= 2) {
+        $conditions[] = "(full_name LIKE ? OR email LIKE ? OR student_id LIKE ?)";
+        $searchTerm = '%' . $query . '%';
+        $params[] = $searchTerm;
+        $params[] = $searchTerm;
+        $params[] = $searchTerm;
     }
 
-    $sql = "SELECT id, full_name, email, role, profile_image 
-            FROM users 
-            WHERE id != ? 
-            AND is_approved = 1 
-            AND (full_name LIKE ? OR email LIKE ? OR student_id LIKE ?)
-            LIMIT 20";
+    // Filter by batch
+    if (!empty($batch)) {
+        $conditions[] = "batch = ?";
+        $params[] = $batch;
+    }
 
-    $searchTerm = '%' . $query . '%';
-    $users = $db->query($sql, [$currentUserId, $searchTerm, $searchTerm, $searchTerm]);
+    // Filter by department
+    if (!empty($department)) {
+        $conditions[] = "department = ?";
+        $params[] = $department;
+    }
+
+    // Filter by trimester
+    if (!empty($trimester)) {
+        $conditions[] = "trimester = ?";
+        $params[] = (int)$trimester;
+    }
+
+    // Filter by skills (JSON contains)
+    if (!empty($skills)) {
+        $skillsArray = explode(',', $skills);
+        $skillConditions = [];
+        foreach ($skillsArray as $skill) {
+            $skill = trim($skill);
+            if (!empty($skill)) {
+                $skillConditions[] = "JSON_CONTAINS(skills, ?)";
+                $params[] = json_encode($skill);
+            }
+        }
+        if (!empty($skillConditions)) {
+            $conditions[] = "(" . implode(" OR ", $skillConditions) . ")";
+        }
+    }
+
+    // Build ORDER BY
+    $orderBy = "full_name ASC";
+    switch ($sortBy) {
+        case 'batch':
+            $orderBy = "batch DESC, full_name ASC";
+            break;
+        case 'trimester':
+            $orderBy = "trimester DESC, full_name ASC";
+            break;
+        case 'department':
+            $orderBy = "department ASC, full_name ASC";
+            break;
+        case 'skills':
+            $orderBy = "skills ASC, full_name ASC";
+            break;
+    }
+
+    $sql = "SELECT id, full_name, email, role, profile_image, batch, department, trimester, skills, student_id 
+            FROM users 
+            WHERE " . implode(" AND ", $conditions) . " 
+            ORDER BY " . $orderBy . "
+            LIMIT 50";
+
+    $users = $db->query($sql, $params);
+
+    // Decode skills JSON for each user
+    if ($users) {
+        foreach ($users as &$user) {
+            $user['skills'] = $user['skills'] ? json_decode($user['skills'], true) : [];
+        }
+    }
 
     echo json_encode([
         'success' => true,

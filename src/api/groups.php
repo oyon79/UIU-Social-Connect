@@ -66,7 +66,7 @@ function getAllGroups($db)
             FROM groups g
             INNER JOIN users u ON g.creator_id = u.id
             WHERE g.is_approved = 1
-            ORDER BY g.created_at DESC";
+            ORDER BY g.is_auto_created ASC, g.created_at DESC";
     
     $groups = $db->query($sql, [$userId]);
     
@@ -74,6 +74,8 @@ function getAllGroups($db)
         foreach ($groups as &$group) {
             $group['is_member'] = (bool)($group['is_member'] ?? 0);
             $group['is_creator'] = ($group['creator_id'] == $userId);
+            // Decode JSON fields
+            $group['required_skills'] = $group['required_skills'] ? json_decode($group['required_skills'], true) : [];
         }
     }
     
@@ -170,10 +172,18 @@ function createGroup($db)
     $name = trim($data['name'] ?? '');
     $description = trim($data['description'] ?? '');
     $category = trim($data['category'] ?? '');
+    $groupType = trim($data['group_type'] ?? 'general');
+    $requiredSkills = $data['required_skills'] ?? [];
     
     if (empty($name) || empty($description)) {
         echo json_encode(['success' => false, 'message' => 'Name and description are required']);
         return;
+    }
+    
+    // Convert required_skills to JSON
+    $requiredSkillsJson = null;
+    if (!empty($requiredSkills) && is_array($requiredSkills)) {
+        $requiredSkillsJson = json_encode($requiredSkills);
     }
     
     // Handle image upload if provided
@@ -193,10 +203,10 @@ function createGroup($db)
         }
     }
     
-    $sql = "INSERT INTO groups (name, description, category, creator_id, image_url, is_approved, created_at) 
-            VALUES (?, ?, ?, ?, ?, 0, NOW())";
+    $sql = "INSERT INTO groups (name, description, category, group_type, required_skills, creator_id, image_url, is_approved, created_at) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, 0, NOW())";
     
-    $result = $db->query($sql, [$name, $description, $category, $userId, $imageUrl]);
+    $result = $db->query($sql, [$name, $description, $category, $groupType, $requiredSkillsJson, $userId, $imageUrl]);
     
     if ($result) {
         $groupId = $db->getConnection()->insert_id;

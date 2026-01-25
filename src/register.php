@@ -462,15 +462,81 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">Student/Employee ID (Optional)</label>
+                    <label class="form-label" id="studentIdLabel">Student/Employee ID (Optional)</label>
                     <input
                         type="text"
                         id="studentId"
                         name="studentId"
                         class="form-control"
                         placeholder="e.g., 011201234">
+                    <div class="invalid-feedback" id="studentIdError"></div>
                 </div>
 </div>
+
+                <!-- Department & Batch (For Students) -->
+                <div class="form-row" id="studentFields" style="display: none;">
+                    <div class="form-group">
+                        <label class="form-label">Department <span style="color: red;">*</span></label>
+                        <select id="department" name="department" class="form-control">
+                            <option value="">Select Department</option>
+                            <option value="CSE">CSE - Computer Science & Engineering</option>
+                            <option value="EEE">EEE - Electrical & Electronic Engineering</option>
+                        </select>
+                        <div class="invalid-feedback" id="departmentError"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Batch <span style="color: red;">*</span></label>
+                        <select id="batch" name="batch" class="form-control">
+                            <option value="">Select Batch</option>
+                            <option value="222">222 (2022 - 2nd Batch)</option>
+                            <option value="223">223 (2022 - 3rd Batch)</option>
+                            <option value="231">231 (2023 - 1st Batch)</option>
+                            <option value="232">232 (2023 - 2nd Batch)</option>
+                            <option value="233">233 (2023 - 3rd Batch)</option>
+                            <option value="241">241 (2024 - 1st Batch)</option>
+                            <option value="242">242 (2024 - 2nd Batch)</option>
+                            <option value="243">243 (2024 - 3rd Batch)</option>
+                            <option value="251">251 (2025 - 1st Batch)</option>
+                            <option value="252">252 (2025 - 2nd Batch)</option>
+                            <option value="253">253 (2025 - 3rd Batch)</option>
+                            <option value="261">261 (2026 - 1st Batch)</option>
+                        </select>
+                        <div class="invalid-feedback" id="batchError"></div>
+                    </div>
+                </div>
+
+                <!-- Skills Selection (For Students, Alumni, Faculty) -->
+                <div class="form-group" id="skillsField" style="display: none;">
+                    <label class="form-label">Skills (Select 1-5) <span style="color: red;">*</span></label>
+                    <select id="skills" name="skills" class="form-control" multiple size="8">
+                        <option value="Frontend Developer">Frontend Developer</option>
+                        <option value="Backend Developer">Backend Developer</option>
+                        <option value="Full Stack Developer">Full Stack Developer</option>
+                        <option value="Mobile App Developer">Mobile App Developer</option>
+                        <option value="UI/UX Designer">UI/UX Designer</option>
+                        <option value="Graphics Designer">Graphics Designer</option>
+                        <option value="QA / Software Tester">QA / Software Tester</option>
+                        <option value="Machine Learning Engineer">Machine Learning Engineer</option>
+                        <option value="Data Scientist">Data Scientist</option>
+                        <option value="AI Engineer">AI Engineer</option>
+                        <option value="Database Engineer">Database Engineer</option>
+                        <option value="DevOps Engineer">DevOps Engineer</option>
+                        <option value="Cloud Engineer">Cloud Engineer</option>
+                        <option value="Cyber Security Enthusiast">Cyber Security Enthusiast</option>
+                        <option value="Game Developer">Game Developer</option>
+                        <option value="IoT / Embedded Systems">IoT / Embedded Systems</option>
+                        <option value="Blockchain Developer">Blockchain Developer</option>
+                        <option value="AR / VR Developer">AR / VR Developer</option>
+                        <option value="Research Assistant">Research Assistant</option>
+                        <option value="Competitive Programmer">Competitive Programmer</option>
+                        <option value="Product Manager (Tech)">Product Manager (Tech)</option>
+                        <option value="Business Analyst">Business Analyst</option>
+                        <option value="Technical Writer">Technical Writer</option>
+                    </select>
+                    <small style="color: var(--gray-dark); font-size: 0.875rem;">Hold Ctrl/Cmd to select multiple skills</small>
+                    <div class="invalid-feedback" id="skillsError"></div>
+                </div>
 
               
 
@@ -495,6 +561,46 @@
         const registerForm = document.getElementById('registerForm');
         const successMessage = document.getElementById('successMessage');
         const errorMessage = document.getElementById('errorMessage');
+        const roleSelect = document.getElementById('role');
+        const studentFields = document.getElementById('studentFields');
+        const skillsField = document.getElementById('skillsField');
+        const studentIdField = document.getElementById('studentId');
+        const studentIdLabel = document.getElementById('studentIdLabel');
+
+        // Handle role change to show/hide fields
+        roleSelect.addEventListener('change', function() {
+            const role = this.value;
+            
+            // Reset fields
+            studentFields.style.display = 'none';
+            skillsField.style.display = 'none';
+            document.getElementById('department').removeAttribute('required');
+            document.getElementById('batch').removeAttribute('required');
+            document.getElementById('skills').removeAttribute('required');
+            studentIdField.removeAttribute('required');
+            
+            if (role === 'Student') {
+                studentFields.style.display = 'flex';
+                skillsField.style.display = 'block';
+                document.getElementById('department').setAttribute('required', 'required');
+                document.getElementById('batch').setAttribute('required', 'required');
+                document.getElementById('skills').setAttribute('required', 'required');
+                studentIdField.setAttribute('required', 'required');
+                studentIdLabel.innerHTML = 'Student ID <span style="color: red;">*</span>';
+            } else if (role === 'Alumni') {
+                skillsField.style.display = 'block';
+                document.getElementById('skills').setAttribute('required', 'required');
+                studentIdField.setAttribute('required', 'required');
+                studentIdLabel.innerHTML = 'Student/User ID <span style="color: red;">*</span>';
+            } else if (role === 'Faculty') {
+                skillsField.style.display = 'block';
+                document.getElementById('skills').setAttribute('required', 'required');
+                studentIdField.setAttribute('required', 'required');
+                studentIdLabel.innerHTML = 'Employee/User ID <span style="color: red;">*</span>';
+            } else {
+                studentIdLabel.innerHTML = 'Employee/User ID (Optional)';
+            }
+        });
 
         registerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -516,6 +622,10 @@
             const confirmPassword = document.getElementById('confirmPassword').value;
             const role = document.getElementById('role').value;
             const studentId = document.getElementById('studentId').value.trim();
+            const department = document.getElementById('department').value;
+            const batch = document.getElementById('batch').value;
+            const skillsSelect = document.getElementById('skills');
+            const selectedSkills = Array.from(skillsSelect.selectedOptions).map(option => option.value);
 
             // Client-side validation
             let isValid = true;
@@ -542,6 +652,49 @@
                 isValid = false;
             }
 
+            // Role-specific validation
+            if (role === 'Student') {
+                if (!studentId) {
+                    document.getElementById('studentId').classList.add('is-invalid');
+                    document.getElementById('studentIdError').textContent = 'Student ID is required';
+                    isValid = false;
+                }
+                if (!department) {
+                    document.getElementById('department').classList.add('is-invalid');
+                    document.getElementById('departmentError').textContent = 'Department is required';
+                    isValid = false;
+                }
+                if (!batch) {
+                    document.getElementById('batch').classList.add('is-invalid');
+                    document.getElementById('batchError').textContent = 'Batch is required';
+                    isValid = false;
+                }
+                if (selectedSkills.length < 1) {
+                    document.getElementById('skills').classList.add('is-invalid');
+                    document.getElementById('skillsError').textContent = 'Please select at least 1 skill';
+                    isValid = false;
+                } else if (selectedSkills.length > 5) {
+                    document.getElementById('skills').classList.add('is-invalid');
+                    document.getElementById('skillsError').textContent = `You selected ${selectedSkills.length} skills. Maximum is 5`;
+                    isValid = false;
+                }
+            } else if (role === 'Alumni' || role === 'Faculty') {
+                if (!studentId) {
+                    document.getElementById('studentId').classList.add('is-invalid');
+                    document.getElementById('studentIdError').textContent = 'ID is required';
+                    isValid = false;
+                }
+                if (selectedSkills.length < 1) {
+                    document.getElementById('skills').classList.add('is-invalid');
+                    document.getElementById('skillsError').textContent = 'Please select at least 1 skill';
+                    isValid = false;
+                } else if (selectedSkills.length > 5) {
+                    document.getElementById('skills').classList.add('is-invalid');
+                    document.getElementById('skillsError').textContent = `You selected ${selectedSkills.length} skills. Maximum is 5`;
+                    isValid = false;
+                }
+            }
+
             if (!isValid) return;
 
             // Show loading
@@ -549,19 +702,30 @@
             document.getElementById('registerSpinner').style.display = 'block';
 
             try {
+                const requestData = {
+                    action: 'register',
+                    full_name: fullName,
+                    email: email,
+                    password: password,
+                    role: role,
+                    student_id: studentId || null
+                };
+
+                // Add optional fields
+                if (role === 'Student') {
+                    requestData.department = department;
+                    requestData.batch = batch;
+                    requestData.skills = selectedSkills;
+                } else if (role === 'Alumni' || role === 'Faculty') {
+                    requestData.skills = selectedSkills;
+                }
+
                 const response = await fetch('api/auth.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        action: 'register',
-                        full_name: fullName,
-                        email: email,
-                        password: password,
-                        role: role,
-                        student_id: studentId
-                    })
+                    body: JSON.stringify(requestData)
                 });
 
                 const data = await response.json();
@@ -570,6 +734,8 @@
                     successMessage.style.display = 'flex';
                     document.getElementById('successText').textContent = data.message;
                     registerForm.reset();
+                    studentFields.style.display = 'none';
+                    skillsField.style.display = 'none';
 
                     // Redirect to login after 2 seconds
                     setTimeout(() => {

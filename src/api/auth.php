@@ -154,6 +154,8 @@ function handleLogin($input)
 // Handle Registration
 function handleRegister($input)
 {
+    require_once '../includes/courses.php';
+    
     $full_name = sanitize($input['full_name'] ?? '');
     $email = sanitize($input['email'] ?? '');
     $password = $input['password'] ?? '';
@@ -161,6 +163,7 @@ function handleRegister($input)
     $student_id = sanitize($input['student_id'] ?? '');
     $department = sanitize($input['department'] ?? '');
     $batch = sanitize($input['batch'] ?? '');
+    $skills = $input['skills'] ?? [];
 
     // Validate required fields
     if (empty($full_name) || empty($email) || empty($password)) {
@@ -176,6 +179,23 @@ function handleRegister($input)
     if (strlen($password) < 6) {
         jsonResponse(['success' => false, 'message' => 'Password must be at least 6 characters']);
     }
+    
+    // Role-specific validation
+    if ($role === 'Student') {
+        if (empty($student_id) || empty($department) || empty($batch)) {
+            jsonResponse(['success' => false, 'message' => 'Student ID, Department, and Batch are required for students']);
+        }
+        if (empty($skills) || count($skills) < 1 || count($skills) > 5) {
+            jsonResponse(['success' => false, 'message' => 'Students must select 1 to 5 skills']);
+        }
+    } elseif ($role === 'Alumni' || $role === 'Faculty') {
+        if (empty($student_id)) {
+            jsonResponse(['success' => false, 'message' => 'ID is required']);
+        }
+        if (empty($skills) || count($skills) < 1 || count($skills) > 5) {
+            jsonResponse(['success' => false, 'message' => 'Please select 1 to 5 skills']);
+        }
+    }
 
     $db = getDB();
 
@@ -189,13 +209,27 @@ function handleRegister($input)
 
     // Hash password
     $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+    
+    // Calculate trimester for students
+    $trimester = null;
+    if ($role === 'Student' && !empty($batch)) {
+        $trimester = getRunningTrimester($batch);
+    }
+    
+    // Convert skills array to JSON
+    $skills_json = !empty($skills) ? json_encode($skills) : null;
 
     // Insert user (not approved by default)
-    $stmt = $db->prepare("INSERT INTO users (full_name, email, password, role, student_id, department, batch, is_approved) VALUES (?, ?, ?, ?, ?, ?, ?, 0)");
-    $stmt->bind_param("sssssss", $full_name, $email, $hashed_password, $role, $student_id, $department, $batch);
+    $stmt = $db->prepare("INSERT INTO users (full_name, email, password, role, student_id, department, batch, trimester, skills, is_approved) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)");
+    $stmt->bind_param("sssssssis", $full_name, $email, $hashed_password, $role, $student_id, $department, $batch, $trimester, $skills_json);
 
     if ($stmt->execute()) {
         $user_id = $db->insert_id;
+
+        // Auto-create and join course groups for students
+        if ($role === 'Student' && !empty($department) && !empty($batch) && !empty($trimester)) {
+            createCourseGroupsForStudent($db, $user_id, $department, $batch, $trimester);
+        }
 
         logActivity($user_id, null, 'User Registration', 'New user registered: ' . $email);
 
@@ -207,6 +241,65 @@ function handleRegister($input)
     }
 
     jsonResponse(['success' => false, 'message' => 'Registration failed. Please try again.']);
+}
+
+/**
+ * Create course-based groups and auto-join student
+ * 
+ * @param object $db Database connection
+ * @param int $user_id User ID
+ * @param string $department Department (CSE/EEE)
+ * @param string $batch Batch number
+ * @param int $trimester Running trimester number
+ */
+function createCourseGroupsForStudent($db, $user_id, $department, $batch, $trimester) {
+    require_once '../includes/courses.php';
+    
+    // Loop through all trimesters up to running trimester
+    for ($tri = 1; $tri <= $trimester; $tri++) {
+        $courses = getCoursesByTrimester($department, $tri);
+        
+        foreach ($courses as $course) {
+            $course_code = $course['code'];
+            $course_title = $course['title'];
+            $group_name = "{$department} - {$course_code}: {$course_title}";
+            $group_description = "Automated course group for {$course_code} - {$course_title}. Batch {$batch}, Trimester {$tri}.";
+            
+            // Check if group already exists
+            $checkStmt = $db->prepare("SELECT id FROM groups WHERE course_code = ? AND trimester_number = ? AND department = ? AND is_auto_created = 1");
+            $checkStmt->bind_param("sis", $course_code, $tri, $department);
+            $checkStmt->execute();
+            $result = $checkStmt->get_result();
+            
+            if ($result->num_rows > 0) {
+                // Group exists, just join
+                $group = $result->fetch_assoc();
+                $group_id = $group['id'];
+            } else {
+                // Create new group (auto-approved, system-created using first user)
+                $insertStmt = $db->prepare("INSERT INTO groups (name, description, category, group_type, creator_id, course_code, trimester_number, department, is_auto_created, is_approved, members_count) VALUES (?, ?, 'Academic', 'course', ?, ?, ?, ?, 1, 1, 0)");
+                $insertStmt->bind_param("ssissi", $group_name, $group_description, $user_id, $course_code, $tri, $department);
+                $insertStmt->execute();
+                $group_id = $db->insert_id;
+            }
+            
+            // Join student to group (if not already a member)
+            $joinCheckStmt = $db->prepare("SELECT id FROM group_members WHERE group_id = ? AND user_id = ?");
+            $joinCheckStmt->bind_param("ii", $group_id, $user_id);
+            $joinCheckStmt->execute();
+            
+            if ($joinCheckStmt->get_result()->num_rows == 0) {
+                $joinStmt = $db->prepare("INSERT INTO group_members (group_id, user_id, role, joined_at) VALUES (?, ?, 'member', NOW())");
+                $joinStmt->bind_param("ii", $group_id, $user_id);
+                $joinStmt->execute();
+                
+                // Update member count
+                $updateStmt = $db->prepare("UPDATE groups SET members_count = (SELECT COUNT(*) FROM group_members WHERE group_id = ?) WHERE id = ?");
+                $updateStmt->bind_param("ii", $group_id, $group_id);
+                $updateStmt->execute();
+            }
+        }
+    }
 }
 
 // Handle Logout
