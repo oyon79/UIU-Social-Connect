@@ -58,6 +58,30 @@ switch ($action) {
 function getAllGroups($db)
 {
     $userId = $_SESSION['user_id'];
+    $filterType = $_GET['filter'] ?? 'all'; // 'all', 'my_courses', 'joined'
+    
+    // Get user info for filtering
+    $userSql = "SELECT department, batch, trimester, role FROM users WHERE id = ?";
+    $userInfo = $db->query($userSql, [$userId]);
+    
+    $whereClauses = ["g.is_approved = 1"];
+    $params = [$userId];
+    
+    // Filter based on type
+    if ($filterType === 'my_courses' && $userInfo && !empty($userInfo)) {
+        $user = $userInfo[0];
+        // Show only course groups for student's department and up to their trimester
+        if ($user['role'] === 'Student' && $user['department'] && $user['trimester']) {
+            $whereClauses[] = "(g.is_auto_created = 1 AND g.department = ? AND g.trimester_number <= ?)";
+            $params[] = $user['department'];
+            $params[] = $user['trimester'];
+        }
+    } elseif ($filterType === 'joined') {
+        $whereClauses[] = "EXISTS (SELECT 1 FROM group_members WHERE group_id = g.id AND user_id = ?)";
+        $params[] = $userId;
+    }
+    
+    $whereClause = implode(' AND ', $whereClauses);
     
     $sql = "SELECT g.*, 
                    u.full_name as creator_name,
@@ -65,10 +89,10 @@ function getAllGroups($db)
                    (SELECT COUNT(*) FROM group_members WHERE group_id = g.id AND user_id = ?) as is_member
             FROM groups g
             INNER JOIN users u ON g.creator_id = u.id
-            WHERE g.is_approved = 1
-            ORDER BY g.is_auto_created ASC, g.created_at DESC";
+            WHERE {$whereClause}
+            ORDER BY g.is_auto_created DESC, g.created_at DESC";
     
-    $groups = $db->query($sql, [$userId]);
+    $groups = $db->query($sql, $params);
     
     if ($groups) {
         foreach ($groups as &$group) {

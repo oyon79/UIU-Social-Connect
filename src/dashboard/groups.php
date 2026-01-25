@@ -335,13 +335,26 @@ require_once '../includes/header.php';
         <!-- Groups List (Right) -->
         <div class="groups-sidebar">
             <div class="groups-sidebar-header">
-                <h2 style="margin: 0;">My Groups</h2>
+                <h2 style="margin: 0;">Groups</h2>
                 <button class="btn btn-primary btn-sm" onclick="openCreateModal()">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="12" y1="5" x2="12" y2="19"></line>
                         <line x1="5" y1="12" x2="19" y2="12"></line>
                     </svg>
                     Create
+                </button>
+            </div>
+            
+            <!-- Filter Tabs -->
+            <div style="padding: 0.75rem 1rem; border-bottom: 2px solid var(--gray-light); display: flex; gap: 0.5rem;">
+                <button class="filter-tab active" data-filter="joined" onclick="switchGroupFilter('joined')" style="padding: 0.5rem 1rem; border: none; background: var(--primary-orange); color: white; border-radius: 8px; font-size: 0.875rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease;">
+                    My Groups
+                </button>
+                <button class="filter-tab" data-filter="my_courses" onclick="switchGroupFilter('my_courses')" style="padding: 0.5rem 1rem; border: 2px solid var(--gray-medium); background: white; color: var(--dark-text); border-radius: 8px; font-size: 0.875rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease;">
+                    Course Groups
+                </button>
+                <button class="filter-tab" data-filter="all" onclick="switchGroupFilter('all')" style="padding: 0.5rem 1rem; border: 2px solid var(--gray-medium); background: white; color: var(--dark-text); border-radius: 8px; font-size: 0.875rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease;">
+                    All Groups
                 </button>
             </div>
             
@@ -393,9 +406,10 @@ require_once '../includes/header.php';
 <script>
     let currentGroupId = null;
     let messageCheckInterval = null;
+    let currentFilter = 'joined'; // Default filter
 
     document.addEventListener('DOMContentLoaded', () => {
-        loadUserGroups();
+        loadGroups();
         
         // Check URL parameter for direct group chat
         const urlParams = new URLSearchParams(window.location.search);
@@ -404,10 +418,36 @@ require_once '../includes/header.php';
             openGroupChat(parseInt(groupId));
         }
     });
+    
+    function switchGroupFilter(filter) {
+        currentFilter = filter;
+        
+        // Update tab styles
+        document.querySelectorAll('.filter-tab').forEach(tab => {
+            if (tab.dataset.filter === filter) {
+                tab.style.background = 'var(--primary-orange)';
+                tab.style.color = 'white';
+                tab.style.border = 'none';
+                tab.classList.add('active');
+            } else {
+                tab.style.background = 'white';
+                tab.style.color = 'var(--dark-text)';
+                tab.style.border = '2px solid var(--gray-medium)';
+                tab.classList.remove('active');
+            }
+        });
+        
+        // Reload groups with new filter
+        loadGroups();
+    }
 
-    async function loadUserGroups() {
+    async function loadGroups() {
         try {
-            const response = await fetch('../api/groups.php?action=get_user_groups');
+            const endpoint = currentFilter === 'joined' 
+                ? '../api/groups.php?action=get_user_groups' 
+                : `../api/groups.php?action=get_all&filter=${currentFilter}`;
+            
+            const response = await fetch(endpoint);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
@@ -416,21 +456,40 @@ require_once '../includes/header.php';
             const container = document.getElementById('groupsList');
             
             if (data.success && data.groups && data.groups.length > 0) {
-                container.innerHTML = data.groups.map(group => `
-                    <div class="group-item ${currentGroupId === group.id ? 'active' : ''}" onclick="openGroupChat(${group.id})">
-                        <div class="group-item-header">
-                            <div class="avatar" style="${group.image_url ? `background-image: url(../${group.image_url});` : ''}">
-                                ${!group.image_url ? `<span>${group.name.charAt(0).toUpperCase()}</span>` : ''}
+                container.innerHTML = data.groups.map(group => {
+                    const badgeHtml = group.is_auto_created 
+                        ? '<span style="font-size: 0.75rem; padding: 0.25rem 0.5rem; background: #3B82F6; color: white; border-radius: 6px; margin-left: 0.5rem;">📚 Course</span>'
+                        : '';
+                    const memberBadge = group.is_member 
+                        ? '<span style="font-size: 0.75rem; padding: 0.25rem 0.5rem; background: #10B981; color: white; border-radius: 6px; margin-left: 0.5rem;">✓ Joined</span>'
+                        : '';
+                    
+                    return `
+                        <div class="group-item ${currentGroupId === group.id ? 'active' : ''}" onclick="openGroupChat(${group.id})">
+                            <div class="group-item-header">
+                                <div class="avatar" style="${group.image_url ? `background-image: url(../${group.image_url});` : ''}">
+                                    ${!group.image_url ? `<span>${group.name.charAt(0).toUpperCase()}</span>` : ''}
+                                </div>
+                                <div style="flex: 1;">
+                                    <div class="group-item-name">
+                                        ${escapeHtml(group.name)}
+                                        ${badgeHtml}
+                                        ${!group.is_member && currentFilter !== 'joined' ? memberBadge : ''}
+                                    </div>
+                                    <div class="group-item-meta">👥 ${group.members_count || 0} members</div>
+                                </div>
                             </div>
-                            <div style="flex: 1;">
-                                <div class="group-item-name">${escapeHtml(group.name)}</div>
-                                <div class="group-item-meta">👥 ${group.members_count || 0} members</div>
-                            </div>
+                            ${group.description ? `<p style="font-size: 0.875rem; color: var(--gray-dark); margin: 0;">${escapeHtml(group.description.substring(0, 50))}${group.description.length > 50 ? '...' : ''}</p>` : ''}
                         </div>
-                        ${group.description ? `<p style="font-size: 0.875rem; color: var(--gray-dark); margin: 0;">${escapeHtml(group.description.substring(0, 50))}${group.description.length > 50 ? '...' : ''}</p>` : ''}
-                    </div>
-                `).join('');
+                    `;
+                }).join('');
             } else {
+                const message = currentFilter === 'my_courses' 
+                    ? 'No course groups available yet. They will be created automatically based on your batch and trimester.'
+                    : currentFilter === 'joined'
+                    ? 'You haven\'t joined any groups yet. Browse available groups to get started!'
+                    : 'No groups available. Create one to get started!';
+                
                 container.innerHTML = `
                     <div class="text-center" style="padding: 3rem;">
                         <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-bottom: 1rem; color: var(--gray-dark);">
@@ -439,8 +498,8 @@ require_once '../includes/header.php';
                             <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
                             <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                         </svg>
-                        <h3>No Groups Yet</h3>
-                        <p style="color: var(--gray-dark);">Join or create a group to start chatting!</p>
+                        <h3>No Groups Found</h3>
+                        <p style="color: var(--gray-dark);">${message}</p>
                     </div>
                 `;
             }
@@ -450,10 +509,16 @@ require_once '../includes/header.php';
                 <div class="text-center" style="padding: 3rem;">
                     <h3 style="color: var(--error);">Failed to load groups</h3>
                     <p style="color: var(--gray-dark);">An error occurred: ${error.message}</p>
-                    <button class="btn btn-secondary mt-3" onclick="loadUserGroups()">Retry</button>
+                    <button class="btn btn-secondary mt-3" onclick="loadGroups()">Retry</button>
                 </div>
             `;
         }
+    }
+    
+    // Keep loadUserGroups for backward compatibility
+    async function loadUserGroups() {
+        currentFilter = 'joined';
+        await loadGroups();
     }
 
     async function openGroupChat(groupId) {
@@ -714,7 +779,7 @@ require_once '../includes/header.php';
                 closeCreateModal();
                 showAlert('Group created! Waiting for admin approval.', 'success');
                 document.getElementById('createGroupForm').reset();
-                loadUserGroups();
+                loadGroups(); // Reload groups list
             } else {
                 showAlert(data.message || 'Failed to create group', 'error');
             }
