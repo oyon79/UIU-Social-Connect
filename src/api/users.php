@@ -320,7 +320,7 @@ function acceptFriendRequest($db)
     }
 
     $conn = $db->getConnection();
-    
+
     // Start transaction
     $conn->begin_transaction();
 
@@ -334,11 +334,11 @@ function acceptFriendRequest($db)
             // Create friendship record (ensure user1_id < user2_id for consistency)
             $user1Id = min($userId, $friendId);
             $user2Id = max($userId, $friendId);
-            
+
             // Check if friendship already exists
             $checkSql = "SELECT id FROM friendships WHERE (user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)";
             $existing = $db->query($checkSql, [$user1Id, $user2Id, $user2Id, $user1Id]);
-            
+
             if (!$existing || empty($existing)) {
                 $friendshipSql = "INSERT INTO friendships (user1_id, user2_id, created_at) VALUES (?, ?, NOW())";
                 $db->query($friendshipSql, [$user1Id, $user2Id]);

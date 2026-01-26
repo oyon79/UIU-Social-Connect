@@ -58,7 +58,7 @@ function getNotifications($db)
         foreach ($notifications as &$notification) {
             $notification['time_ago'] = getTimeAgo($notification['created_at']);
             $notification['is_read'] = (bool)$notification['is_read'];
-            
+
             // Get avatar initial if no profile image or if it's a system notification
             if (empty($notification['full_name'])) {
                 $notification['full_name'] = 'System';

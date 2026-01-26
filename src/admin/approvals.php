@@ -503,17 +503,17 @@ $pageTitle = 'Approvals - Admin Panel';
                 if (data.success && data.events && data.events.length > 0) {
                     container.innerHTML = data.events.map(event => {
                         const eventDate = new Date(event.event_date + ' ' + (event.event_time || '00:00:00'));
-                        const formattedDate = eventDate.toLocaleDateString('en-US', { 
-                            weekday: 'short', 
-                            year: 'numeric', 
-                            month: 'short', 
-                            day: 'numeric' 
+                        const formattedDate = eventDate.toLocaleDateString('en-US', {
+                            weekday: 'short',
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
                         });
-                        const formattedTime = event.event_time ? new Date('2000-01-01 ' + event.event_time).toLocaleTimeString('en-US', { 
-                            hour: 'numeric', 
-                            minute: '2-digit' 
+                        const formattedTime = event.event_time ? new Date('2000-01-01 ' + event.event_time).toLocaleTimeString('en-US', {
+                            hour: 'numeric',
+                            minute: '2-digit'
                         }) : '';
-                        
+
                         return `
                         <div class="approval-card animate-slide-up">
                             <div class="approval-header">
@@ -590,12 +590,12 @@ $pageTitle = 'Approvals - Admin Panel';
 
                 if (data.success && data.jobs && data.jobs.length > 0) {
                     container.innerHTML = data.jobs.map(job => {
-                        const deadlineDate = job.deadline ? new Date(job.deadline).toLocaleDateString('en-US', { 
-                            year: 'numeric', 
-                            month: 'short', 
-                            day: 'numeric' 
+                        const deadlineDate = job.deadline ? new Date(job.deadline).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
                         }) : 'Not specified';
-                        
+
                         return `
                         <div class="approval-card animate-slide-up">
                             <div class="approval-header">
@@ -981,11 +981,11 @@ $pageTitle = 'Approvals - Admin Panel';
 
                 if (data.success && data.notices && data.notices.length > 0) {
                     container.innerHTML = data.notices.map(notice => {
-                        const priorityClass = notice.priority === 'urgent' ? 'urgent' : 
-                                           notice.priority === 'high' ? 'high' : 'normal';
-                        const priorityColor = notice.priority === 'urgent' ? 'var(--error)' : 
-                                            notice.priority === 'high' ? 'var(--warning)' : '#3B82F6';
-                        
+                        const priorityClass = notice.priority === 'urgent' ? 'urgent' :
+                            notice.priority === 'high' ? 'high' : 'normal';
+                        const priorityColor = notice.priority === 'urgent' ? 'var(--error)' :
+                            notice.priority === 'high' ? 'var(--warning)' : '#3B82F6';
+
                         return `
                         <div class="approval-card animate-slide-up" style="border-left: 4px solid ${priorityColor};">
                             <div class="approval-header">
@@ -1358,8 +1358,12 @@ $pageTitle = 'Approvals - Admin Panel';
             try {
                 const response = await fetch('../api/approvals.php?action=approve_group', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ group_id: groupId })
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        group_id: groupId
+                    })
                 });
 
                 const data = await response.json();
@@ -1382,8 +1386,12 @@ $pageTitle = 'Approvals - Admin Panel';
             try {
                 const response = await fetch('../api/approvals.php?action=reject_group', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ group_id: groupId })
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        group_id: groupId
+                    })
                 });
 
                 const data = await response.json();

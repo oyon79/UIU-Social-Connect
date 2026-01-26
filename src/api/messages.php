@@ -55,9 +55,9 @@ function getConversations($db)
                             CASE WHEN sender_id = ? THEN receiver_id ELSE sender_id END as other_user_id
                         FROM messages
                         WHERE sender_id = ? OR receiver_id = ?";
-        
+
         $partners = $db->query($partnersSql, [$userId, $userId, $userId]);
-        
+
         if (!$partners || empty($partners)) {
             echo json_encode([
                 'success' => true,
@@ -65,22 +65,22 @@ function getConversations($db)
             ]);
             return;
         }
-        
+
         $conversations = [];
-        
+
         foreach ($partners as $partner) {
             $otherUserId = $partner['other_user_id'];
-            
+
             // Get user info
             $userSql = "SELECT id, full_name, profile_image, is_active 
                        FROM users 
                        WHERE id = ? AND is_approved = 1";
             $user = $db->query($userSql, [$otherUserId]);
-            
+
             if (!$user || empty($user)) continue;
-            
+
             $user = $user[0];
-            
+
             // Get last message
             $lastMsgSql = "SELECT message, created_at 
                           FROM messages 
@@ -89,20 +89,20 @@ function getConversations($db)
                           ORDER BY created_at DESC 
                           LIMIT 1";
             $lastMsg = $db->query($lastMsgSql, [$userId, $otherUserId, $otherUserId, $userId]);
-            
+
             // Get unread count
             $unreadSql = "SELECT COUNT(*) as count 
                          FROM messages 
                          WHERE sender_id = ? AND receiver_id = ? AND is_read = 0";
             $unread = $db->query($unreadSql, [$otherUserId, $userId]);
-            
+
             $lastMsgTime = null;
             $sortTime = 0;
             if ($lastMsg && !empty($lastMsg)) {
                 $lastMsgTime = getTimeAgo($lastMsg[0]['created_at']);
                 $sortTime = strtotime($lastMsg[0]['created_at']);
             }
-            
+
             $conversations[] = [
                 'other_user_id' => $otherUserId,
                 'other_user_name' => $user['full_name'],
@@ -114,23 +114,22 @@ function getConversations($db)
                 '_sort_time' => $sortTime // Temporary field for sorting
             ];
         }
-        
+
         // Sort by last message time (most recent first)
-        usort($conversations, function($a, $b) {
+        usort($conversations, function ($a, $b) {
             return ($b['_sort_time'] ?? 0) - ($a['_sort_time'] ?? 0);
         });
-        
+
         // Remove temporary sort field
         foreach ($conversations as &$conv) {
             unset($conv['_sort_time']);
         }
         unset($conv);
-        
+
         echo json_encode([
             'success' => true,
             'conversations' => $conversations
         ]);
-        
     } catch (Exception $e) {
         error_log("Error in getConversations: " . $e->getMessage());
         echo json_encode([
@@ -207,7 +206,7 @@ function sendMessage($db)
         // Check if receiver exists and is approved
         $checkUserSql = "SELECT id FROM users WHERE id = ? AND is_approved = 1";
         $receiver = $db->query($checkUserSql, [$receiverId]);
-        
+
         if (!$receiver || empty($receiver)) {
             echo json_encode(['success' => false, 'message' => 'User not found or not approved']);
             return;
@@ -335,7 +334,7 @@ function getUnreadMessageCount($db)
         $sql = "SELECT COUNT(*) as count 
                 FROM messages 
                 WHERE receiver_id = ? AND is_read = 0";
-        
+
         $result = $db->query($sql, [$userId]);
 
         echo json_encode([

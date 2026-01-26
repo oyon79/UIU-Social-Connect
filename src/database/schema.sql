@@ -203,6 +203,7 @@ CREATE TABLE groups (
     course_code VARCHAR(50),
     trimester_number INT,
     department VARCHAR(100),
+    batch VARCHAR(20),
     is_approved TINYINT(1) DEFAULT 0,
     approved_by INT NULL,
     approved_at TIMESTAMP NULL,
@@ -213,7 +214,8 @@ CREATE TABLE groups (
     INDEX idx_category (category),
     INDEX idx_group_type (group_type),
     INDEX idx_course (course_code, trimester_number),
-    INDEX idx_is_auto_created (is_auto_created)
+    INDEX idx_is_auto_created (is_auto_created),
+    INDEX idx_batch (batch)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Group Members

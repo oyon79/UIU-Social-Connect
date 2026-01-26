@@ -404,7 +404,7 @@
                             id="fullName"
                             name="fullName"
                             class="form-control"
-                            placeholder="John Doe"
+                            placeholder="Enter your full name"
                             required>
                         <div class="invalid-feedback" id="fullNameError"></div>
                     </div>
@@ -416,7 +416,7 @@
                             id="email"
                             name="email"
                             class="form-control"
-                            placeholder="student@uiu.ac.bd"
+                            placeholder="student@domain.uiu.ac.bd"
                             required>
                         <div class="invalid-feedback" id="emailError"></div>
                     </div>
@@ -447,31 +447,31 @@
                         <div class="invalid-feedback" id="confirmPasswordError"></div>
                     </div>
                 </div>
-<div class="form-row">
-  <div class="form-group">
-                    <label class="form-label">Role</label>
-                    <select id="role" name="role" class="form-control" required>
-                        <option value="">Select your role</option>
-                        <option value="Student">Student</option>
-                        <option value="Faculty">Faculty</option>
-                        <option value="Alumni">Alumni</option>
-                        <option value="Staff">Staff</option>
-                        <option value="Club Forum">Club Forum</option>
-                    </select>
-                    <div class="invalid-feedback" id="roleError"></div>
-                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Role</label>
+                        <select id="role" name="role" class="form-control" required>
+                            <option value="">Select your role</option>
+                            <option value="Student">Student</option>
+                            <option value="Faculty">Faculty</option>
+                            <option value="Alumni">Alumni</option>
+                            <option value="Staff">Staff</option>
+                            <option value="Club Forum">Club Forum</option>
+                        </select>
+                        <div class="invalid-feedback" id="roleError"></div>
+                    </div>
 
-                <div class="form-group">
-                    <label class="form-label" id="studentIdLabel">Student/Employee ID (Optional)</label>
-                    <input
-                        type="text"
-                        id="studentId"
-                        name="studentId"
-                        class="form-control"
-                        placeholder="e.g., 011201234">
-                    <div class="invalid-feedback" id="studentIdError"></div>
+                    <div class="form-group">
+                        <label class="form-label" id="studentIdLabel">Student/Employee ID (Optional)</label>
+                        <input
+                            type="text"
+                            id="studentId"
+                            name="studentId"
+                            class="form-control"
+                            placeholder="e.g., 011201234">
+                        <div class="invalid-feedback" id="studentIdError"></div>
+                    </div>
                 </div>
-</div>
 
                 <!-- Department & Batch (For Students) -->
                 <div class="form-row" id="studentFields" style="display: none;">
@@ -538,7 +538,7 @@
                     <div class="invalid-feedback" id="skillsError"></div>
                 </div>
 
-              
+
 
                 <button type="submit" class="btn btn-primary w-100 mb-3">
                     <span id="registerBtnText">Create Account</span>
@@ -570,7 +570,7 @@
         // Handle role change to show/hide fields
         roleSelect.addEventListener('change', function() {
             const role = this.value;
-            
+
             // Reset fields
             studentFields.style.display = 'none';
             skillsField.style.display = 'none';
@@ -578,7 +578,7 @@
             document.getElementById('batch').removeAttribute('required');
             document.getElementById('skills').removeAttribute('required');
             studentIdField.removeAttribute('required');
-            
+
             if (role === 'Student') {
                 studentFields.style.display = 'flex';
                 skillsField.style.display = 'block';
