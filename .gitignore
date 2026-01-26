@@ -1,6 +1,0 @@
-/.env
-/config.php
-/vendor/
-/node_modules/
-/.idea/
-*.log
