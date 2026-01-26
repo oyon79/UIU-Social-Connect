@@ -28,12 +28,12 @@ switch ($action) {
                     END,
                     n.created_at DESC";
         $notices = $db->query($sql);
-        
+
         if ($notices === false) {
             echo json_encode(['success' => false, 'message' => 'Database query failed']);
             break;
         }
-        
+
         echo json_encode(['success' => true, 'notices' => $notices ?: []]);
         break;
 
@@ -60,21 +60,21 @@ switch ($action) {
         $title = trim($data['title'] ?? '');
         $content = trim($data['content'] ?? '');
         $priority = trim($data['priority'] ?? 'normal');
-        
+
         if (!$title || !$content) {
             echo json_encode(['success' => false, 'message' => 'Title and content are required']);
             break;
         }
-        
+
         // Validate priority
         $allowedPriorities = ['low', 'medium', 'high', 'urgent', 'normal'];
         if (!in_array($priority, $allowedPriorities)) {
             $priority = 'normal';
         }
-        
+
         $sql = "INSERT INTO notices (user_id, title, content, priority, is_approved, created_at) VALUES (?, ?, ?, ?, 0, NOW())";
         $result = $db->query($sql, [$_SESSION['user_id'], $title, $content, $priority]);
-        
+
         echo json_encode([
             'success' => $result ? true : false,
             'message' => $result ? 'Notice posted, waiting for approval' : 'Failed to post notice'

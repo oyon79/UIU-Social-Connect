@@ -20,105 +20,254 @@ require_once '../includes/header.php';
 ?>
 
 <style>
-    body { background: var(--gray-light); }
-    .main-container { margin-left: 280px; min-height: 100vh; }
-    
-    .messages-container { display: flex; height: calc(100vh - 80px); }
-    
-    .conversations-sidebar { width: 380px; background: white; border-right: 2px solid var(--gray-light); display: flex; flex-direction: column; }
-    
-    .conversations-header { padding: 1.5rem; border-bottom: 2px solid var(--gray-light); }
-    .conversations-header h2 { margin-bottom: 1rem; }
-    
-    .search-box { position: relative; }
-    .search-box input { width: 100%; padding: 0.75rem 1rem 0.75rem 3rem; border: 2px solid var(--gray-medium); border-radius: 12px; }
-    .search-box svg { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--gray-dark); }
-    
-    .conversations-list { flex: 1; overflow-y: auto; }
-    
-    .conversation-item { padding: 1rem 1.5rem; border-bottom: 1px solid var(--gray-light); cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; gap: 1rem; }
-    .conversation-item:hover { background: var(--gray-light); }
-    .conversation-item.active { background: linear-gradient(135deg, rgba(255, 122, 0, 0.1), rgba(255, 179, 102, 0.1)); border-left: 4px solid var(--primary-orange); }
-    
-    .conversation-avatar { position: relative; }
-    .online-indicator { position: absolute; bottom: 2px; right: 2px; width: 12px; height: 12px; background: var(--success); border: 2px solid white; border-radius: 50%; }
-    
-    .conversation-info { flex: 1; min-width: 0; }
-    .conversation-name { font-weight: 600; margin-bottom: 0.25rem; }
-    .conversation-preview { font-size: 0.875rem; color: var(--gray-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    
-    .conversation-meta { text-align: right; }
-    .conversation-time { font-size: 0.75rem; color: var(--gray-dark); }
-    .unread-badge { background: var(--primary-orange); color: white; border-radius: 12px; padding: 0.25rem 0.5rem; font-size: 0.75rem; font-weight: 700; margin-top: 0.25rem; display: inline-block; }
-    
-    .chat-area { flex: 1; display: flex; flex-direction: column; background: white; }
-    
-    .chat-header { padding: 1.5rem; border-bottom: 2px solid var(--gray-light); display: flex; align-items: center; justify-content: space-between; }
-    .chat-user-info { display: flex; align-items: center; gap: 1rem; }
-    
-    .chat-messages { 
-        flex: 1; 
-        overflow-y: auto; 
-        padding: 1.5rem; 
-        display: flex; 
-        flex-direction: column; 
+    body {
+        background: var(--gray-light);
+    }
+
+    .main-container {
+        margin-left: 280px;
+        min-height: 100vh;
+    }
+
+    .messages-container {
+        display: flex;
+        height: calc(100vh - 80px);
+    }
+
+    .conversations-sidebar {
+        width: 380px;
+        background: white;
+        border-right: 2px solid var(--gray-light);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .conversations-header {
+        padding: 1.5rem;
+        border-bottom: 2px solid var(--gray-light);
+    }
+
+    .conversations-header h2 {
+        margin-bottom: 1rem;
+    }
+
+    .search-box {
+        position: relative;
+    }
+
+    .search-box input {
+        width: 100%;
+        padding: 0.75rem 1rem 0.75rem 3rem;
+        border: 2px solid var(--gray-medium);
+        border-radius: 12px;
+    }
+
+    .search-box svg {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--gray-dark);
+    }
+
+    .conversations-list {
+        flex: 1;
+        overflow-y: auto;
+    }
+
+    .conversation-item {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--gray-light);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .conversation-item:hover {
+        background: var(--gray-light);
+    }
+
+    .conversation-item.active {
+        background: linear-gradient(135deg, rgba(255, 122, 0, 0.1), rgba(255, 179, 102, 0.1));
+        border-left: 4px solid var(--primary-orange);
+    }
+
+    .conversation-avatar {
+        position: relative;
+    }
+
+    .online-indicator {
+        position: absolute;
+        bottom: 2px;
+        right: 2px;
+        width: 12px;
+        height: 12px;
+        background: var(--success);
+        border: 2px solid white;
+        border-radius: 50%;
+    }
+
+    .conversation-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .conversation-name {
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+
+    .conversation-preview {
+        font-size: 0.875rem;
+        color: var(--gray-dark);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .conversation-meta {
+        text-align: right;
+    }
+
+    .conversation-time {
+        font-size: 0.75rem;
+        color: var(--gray-dark);
+    }
+
+    .unread-badge {
+        background: var(--primary-orange);
+        color: white;
+        border-radius: 12px;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        margin-top: 0.25rem;
+        display: inline-block;
+    }
+
+    .chat-area {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background: white;
+    }
+
+    .chat-header {
+        padding: 1.5rem;
+        border-bottom: 2px solid var(--gray-light);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .chat-user-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
         gap: 0.5rem;
         background: #f8f9fa;
     }
-    
-    .message { 
-        display: flex; 
-        gap: 1rem; 
-        max-width: 75%; 
+
+    .message {
+        display: flex;
+        gap: 1rem;
+        max-width: 75%;
         align-items: flex-start;
         margin-bottom: 1rem;
     }
-    
+
     .message.received {
         margin-right: auto;
         margin-left: 0;
     }
-    
-    .message.sent { 
-        margin-left: auto; 
+
+    .message.sent {
+        margin-left: auto;
         margin-right: 0;
-        flex-direction: row-reverse; 
+        flex-direction: row-reverse;
     }
-    
-    .message-content { 
-        background: var(--gray-light); 
-        padding: 0.875rem 1.25rem; 
+
+    .message-content {
+        background: var(--gray-light);
+        padding: 0.875rem 1.25rem;
         border-radius: 16px;
         word-wrap: break-word;
     }
-    
-    .message.sent .message-content { 
-        background: linear-gradient(135deg, var(--primary-orange), var(--primary-orange-light)); 
-        color: white; 
+
+    .message.sent .message-content {
+        background: linear-gradient(135deg, var(--primary-orange), var(--primary-orange-light));
+        color: white;
     }
-    
-    .message-time { 
-        font-size: 0.75rem; 
-        color: var(--gray-dark); 
+
+    .message-time {
+        font-size: 0.75rem;
+        color: var(--gray-dark);
         margin-top: 0.25rem;
     }
-    
+
     .message.sent .message-time {
         text-align: right;
     }
-    
-    .chat-input-container { padding: 1.5rem; border-top: 2px solid var(--gray-light); }
-    .chat-input-wrapper { display: flex; gap: 1rem; align-items: flex-end; }
-    .chat-input { flex: 1; padding: 0.875rem 1.25rem; border: 2px solid var(--gray-medium); border-radius: 16px; resize: none; max-height: 120px; }
-    
-    .empty-chat { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--gray-dark); }
-    
+
+    .chat-input-container {
+        padding: 1.5rem;
+        border-top: 2px solid var(--gray-light);
+    }
+
+    .chat-input-wrapper {
+        display: flex;
+        gap: 1rem;
+        align-items: flex-end;
+    }
+
+    .chat-input {
+        flex: 1;
+        padding: 0.875rem 1.25rem;
+        border: 2px solid var(--gray-medium);
+        border-radius: 16px;
+        resize: none;
+        max-height: 120px;
+    }
+
+    .empty-chat {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: var(--gray-dark);
+    }
+
     @media (max-width: 768px) {
-        .main-container { margin-left: 0; }
-        .conversations-sidebar { width: 100%; }
-        .chat-area { display: none; }
-        .chat-area.active { display: flex; }
-        .conversations-sidebar.hide { display: none; }
+        .main-container {
+            margin-left: 0;
+        }
+
+        .conversations-sidebar {
+            width: 100%;
+        }
+
+        .chat-area {
+            display: none;
+        }
+
+        .chat-area.active {
+            display: flex;
+        }
+
+        .conversations-sidebar.hide {
+            display: none;
+        }
     }
 </style>
 
@@ -126,7 +275,7 @@ require_once '../includes/header.php';
 
 <div class="main-container">
     <?php include '../includes/navbar.php'; ?>
-    
+
     <div class="messages-container">
         <!-- Conversations Sidebar -->
         <div class="conversations-sidebar" id="conversationsSidebar">
@@ -140,7 +289,7 @@ require_once '../includes/header.php';
                     <input type="text" id="searchConversations" placeholder="Search users..." oninput="filterUsers(this.value)">
                 </div>
             </div>
-            
+
             <div class="conversations-list" id="conversationsList">
                 <div class="text-center" style="padding: 3rem;">
                     <div class="spinner"></div>
@@ -203,7 +352,7 @@ require_once '../includes/header.php';
     document.addEventListener('DOMContentLoaded', () => {
         loadAllUsers();
         loadConversations();
-        
+
         // Check URL parameter for direct user chat
         const urlParams = new URLSearchParams(window.location.search);
         const userId = urlParams.get('user');
@@ -217,7 +366,7 @@ require_once '../includes/header.php';
             // Load all approved users (or friends if available)
             const response = await fetch('../api/users.php?action=get_friends');
             const data = await response.json();
-            
+
             if (data.success && data.friends && data.friends.length > 0) {
                 allUsers = data.friends;
                 renderUsersList(allUsers);
@@ -225,7 +374,7 @@ require_once '../includes/header.php';
                 // If no friends, try to get all users (limited)
                 const allUsersResponse = await fetch('../api/messages.php?action=get_all_users');
                 const allUsersData = await allUsersResponse.json();
-                
+
                 if (allUsersData.success && allUsersData.users && allUsersData.users.length > 0) {
                     allUsers = allUsersData.users;
                     renderUsersList(allUsers);
@@ -246,7 +395,7 @@ require_once '../includes/header.php';
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             const data = await response.json();
-            
+
             if (data.success && data.conversations && data.conversations.length > 0) {
                 allConversations = data.conversations;
                 // Merge conversations with users list, marking which have conversations
@@ -258,7 +407,7 @@ require_once '../includes/header.php';
             console.error('Error loading conversations:', error);
         }
     }
-    
+
     function updateUsersWithConversations() {
         // Mark users who have conversations
         allUsers.forEach(user => {
@@ -274,10 +423,10 @@ require_once '../includes/header.php';
         });
         renderUsersList(allUsers);
     }
-    
+
     function renderUsersList(users) {
         const container = document.getElementById('conversationsList');
-        
+
         if (users.length === 0) {
             container.innerHTML = `
                 <div class="text-center" style="padding: 3rem;">
@@ -295,14 +444,14 @@ require_once '../includes/header.php';
             `;
             return;
         }
-        
+
         // Sort: users with conversations first, then by name
         const sortedUsers = [...users].sort((a, b) => {
             if (a.hasConversation && !b.hasConversation) return -1;
             if (!a.hasConversation && b.hasConversation) return 1;
             return a.full_name.localeCompare(b.full_name);
         });
-        
+
         container.innerHTML = sortedUsers.map(user => `
             <div class="conversation-item animate-slide-left ${currentChatUserId === user.id ? 'active' : ''}" onclick="openChat(${user.id})">
                 <div class="conversation-avatar">
@@ -324,14 +473,14 @@ require_once '../includes/header.php';
             </div>
         `).join('');
     }
-    
+
     function filterUsers(query) {
         if (!query.trim()) {
             renderUsersList(allUsers);
             return;
         }
-        
-        const filtered = allUsers.filter(user => 
+
+        const filtered = allUsers.filter(user =>
             user.full_name.toLowerCase().includes(query.toLowerCase()) ||
             (user.email && user.email.toLowerCase().includes(query.toLowerCase())) ||
             (user.hasConversation && user.last_message && user.last_message.toLowerCase().includes(query.toLowerCase()))
@@ -342,23 +491,23 @@ require_once '../includes/header.php';
 
     async function openChat(userId) {
         currentChatUserId = userId;
-        
+
         // Hide empty state
         document.getElementById('emptyChat').style.display = 'none';
         document.getElementById('activeChat').style.display = 'flex';
-        
+
         // Mark conversation as active
         document.querySelectorAll('.conversation-item').forEach(item => {
             item.classList.remove('active');
         });
         event?.target?.closest('.conversation-item')?.classList.add('active');
-        
+
         // Load user info
         loadChatUserInfo(userId);
-        
+
         // Load messages
         loadMessages(userId);
-        
+
         // Start polling for new messages
         if (messageCheckInterval) clearInterval(messageCheckInterval);
         messageCheckInterval = setInterval(() => loadMessages(userId), 3000);
@@ -368,7 +517,7 @@ require_once '../includes/header.php';
         try {
             const response = await fetch(`../api/users.php?action=get_profile&user_id=${userId}`);
             const data = await response.json();
-            
+
             if (data.success) {
                 const user = data.user;
                 document.getElementById('chatUserName').textContent = user.full_name;
@@ -380,7 +529,7 @@ require_once '../includes/header.php';
                     avatar.style.backgroundImage = '';
                     avatar.innerHTML = `<span>${user.full_name.charAt(0).toUpperCase()}</span>`;
                 }
-                
+
                 // // Update online status
                 // const statusEl = document.getElementById('chatUserStatus');
                 // if (statusEl) {
@@ -396,10 +545,10 @@ require_once '../includes/header.php';
         try {
             const response = await fetch(`../api/messages.php?action=get_messages&user_id=${userId}`);
             const data = await response.json();
-            
+
             const container = document.getElementById('chatMessages');
             const wasScrolledToBottom = container.scrollHeight - container.scrollTop === container.clientHeight;
-            
+
             if (data.success && data.messages) {
                 container.innerHTML = data.messages.map(msg => {
                     const senderInitial = msg.sender_name ? msg.sender_name.charAt(0).toUpperCase() : 'U';
@@ -419,7 +568,7 @@ require_once '../includes/header.php';
                         </div>
                     `;
                 }).join('');
-                
+
                 if (wasScrolledToBottom || data.messages.length === 1) {
                     container.scrollTop = container.scrollHeight;
                 }
@@ -457,29 +606,31 @@ require_once '../includes/header.php';
     async function sendMessage() {
         const input = document.getElementById('messageInput');
         const content = input.value.trim();
-        
+
         if (!content || !currentChatUserId) {
             if (!content) {
                 showAlert('Please enter a message', 'error');
             }
             return;
         }
-        
+
         // Disable input while sending
         input.disabled = true;
         const sendBtn = document.querySelector('.chat-input-container .btn-primary');
         if (sendBtn) sendBtn.disabled = true;
-        
+
         try {
             const response = await fetch('../api/messages.php?action=send_message', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json'
+                },
                 body: JSON.stringify({
                     recipient_id: currentChatUserId,
                     content: content
                 })
             });
-            
+
             const text = await response.text();
             let data;
             try {
@@ -491,7 +642,7 @@ require_once '../includes/header.php';
                 if (sendBtn) sendBtn.disabled = false;
                 return;
             }
-            
+
             if (data.success) {
                 input.value = '';
                 loadMessages(currentChatUserId);
@@ -537,17 +688,17 @@ require_once '../includes/header.php';
     async function searchUsersForMessage(query) {
         clearTimeout(searchTimeout);
         const resultsDiv = document.getElementById('searchUsersResults');
-        
+
         if (query.length < 2) {
             resultsDiv.innerHTML = '<p style="text-align: center; color: var(--gray-dark); padding: 2rem;">Type at least 2 characters to search</p>';
             return;
         }
-        
+
         searchTimeout = setTimeout(async () => {
             try {
                 const response = await fetch(`../api/messages.php?action=search_users&query=${encodeURIComponent(query)}`);
                 const data = await response.json();
-                
+
                 if (data.success && data.users && data.users.length > 0) {
                     resultsDiv.innerHTML = data.users.map(user => `
                         <div class="conversation-item" onclick="startNewChat(${user.id}, '${escapeHtml(user.full_name)}')" style="cursor: pointer;">
@@ -601,7 +752,7 @@ require_once '../includes/header.php';
         const now = new Date();
         const msgTime = new Date(timestamp);
         const diffInSeconds = Math.floor((now - msgTime) / 1000);
-        
+
         if (diffInSeconds < 60) return 'Just now';
         if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
         if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
@@ -621,5 +772,5 @@ require_once '../includes/header.php';
 </script>
 
 </body>
-</html>
 
+</html>

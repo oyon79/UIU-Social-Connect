@@ -50,7 +50,7 @@ function getAllJobs($db)
     if ($jobs) {
         foreach ($jobs as &$job) {
             $job['applications_count'] = 0; // Default to 0
-            
+
             // Try to get count if job_applications table exists
             $countSql = "SELECT COUNT(*) as count FROM job_applications WHERE job_id = ?";
             $countResult = $db->query($countSql, [$job['id']]);

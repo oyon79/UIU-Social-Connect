@@ -20,25 +20,87 @@ require_once '../includes/header.php';
 ?>
 
 <style>
-    body { background: var(--gray-light); }
-    .main-container { margin-left: 280px; min-height: 100vh; padding: 2rem; }
-    .jobs-header { background: white; border-radius: 20px; padding: 2rem; margin-bottom: 2rem; box-shadow: var(--shadow-md); display: flex; justify-content: space-between; align-items: center; }
-    .jobs-list { display: flex; flex-direction: column; gap: 1.5rem; }
-    .job-card { background: white; border-radius: 16px; padding: 1.5rem; box-shadow: var(--shadow-md); transition: all 0.3s ease; }
-    .job-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
-    .job-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem; }
-    .job-badge { padding: 0.375rem 0.875rem; border-radius: 20px; font-size: 0.8125rem; font-weight: 600; }
-    .job-badge.full-time { background: #ECFDF5; color: var(--success); }
-    .job-badge.part-time { background: #FFF7ED; color: var(--warning); }
-    .job-badge.internship { background: #EFF6FF; color: #3B82F6; }
-    @media (max-width: 768px) { .main-container { margin-left: 0; } }
+    body {
+        background: var(--gray-light);
+    }
+
+    .main-container {
+        margin-left: 280px;
+        min-height: 100vh;
+        padding: 2rem;
+    }
+
+    .jobs-header {
+        background: white;
+        border-radius: 20px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: var(--shadow-md);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .jobs-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .job-card {
+        background: white;
+        border-radius: 16px;
+        padding: 1.5rem;
+        box-shadow: var(--shadow-md);
+        transition: all 0.3s ease;
+    }
+
+    .job-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .job-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 1rem;
+    }
+
+    .job-badge {
+        padding: 0.375rem 0.875rem;
+        border-radius: 20px;
+        font-size: 0.8125rem;
+        font-weight: 600;
+    }
+
+    .job-badge.full-time {
+        background: #ECFDF5;
+        color: var(--success);
+    }
+
+    .job-badge.part-time {
+        background: #FFF7ED;
+        color: var(--warning);
+    }
+
+    .job-badge.internship {
+        background: #EFF6FF;
+        color: #3B82F6;
+    }
+
+    @media (max-width: 768px) {
+        .main-container {
+            margin-left: 0;
+        }
+    }
 </style>
 
 <?php include '../includes/sidebar.php'; ?>
 
 <div class="main-container">
     <?php include '../includes/navbar.php'; ?>
-    
+
     <div class="jobs-header animate-fade-in">
         <div>
             <h1>💼 Jobs & Internships</h1>
@@ -111,11 +173,11 @@ require_once '../includes/header.php';
         try {
             const response = await fetch('../api/jobs.php?action=get_all');
             const data = await response.json();
-            
+
             console.log('Jobs API Response:', data); // Debug log
-            
+
             const list = document.getElementById('jobsList');
-            
+
             if (data.success && data.jobs && data.jobs.length > 0) {
                 list.innerHTML = data.jobs.map(job => `
                     <div class="job-card animate-slide-up">
@@ -185,8 +247,16 @@ require_once '../includes/header.php';
         try {
             const response = await fetch('../api/jobs.php?action=create', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title, company, description, job_type: jobType, location })
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    title,
+                    company,
+                    description,
+                    job_type: jobType,
+                    location
+                })
             });
 
             const data = await response.json();
@@ -209,8 +279,12 @@ require_once '../includes/header.php';
         try {
             const response = await fetch('../api/jobs.php?action=apply', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ job_id: jobId })
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    job_id: jobId
+                })
             });
 
             const data = await response.json();
@@ -227,7 +301,7 @@ require_once '../includes/header.php';
         const now = new Date();
         const postTime = new Date(timestamp);
         const diffInSeconds = Math.floor((now - postTime) / 1000);
-        
+
         if (diffInSeconds < 60) return 'Just now';
         if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
         if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
@@ -243,4 +317,5 @@ require_once '../includes/header.php';
 </script>
 
 </body>
+
 </html>

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -440,6 +441,7 @@
         }
     </style>
 </head>
+
 <body>
     <!-- Premium Navbar -->
     <nav class="landing-navbar">
@@ -462,17 +464,17 @@
             <div class="hero-content">
                 <div class="hero-badge">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                     </svg>
                     UIU's Official Social Platform
                 </div>
-                
+
                 <h1 class="hero-title">Connect, Share & Grow Together</h1>
-                
+
                 <p class="hero-subtitle">
                     Join UIU Social Connect - The ultimate platform for students, faculty, and alumni to network, collaborate, and stay updated with campus life.
                 </p>
-                
+
                 <div class="hero-buttons">
                     <a href="register.php" class="hero-btn hero-btn-primary">
                         Get Started Free
@@ -486,7 +488,7 @@
                     </a>
                 </div>
             </div>
-            
+
             <div class="hero-image">
                 <img src="./assets/hero.png" alt="Students collaborating">
             </div>
@@ -593,4 +595,5 @@
 
     <script src="assets/js/main.js"></script>
 </body>
+
 </html>

@@ -13,14 +13,13 @@ $userRole = $_SESSION['user_role'] ?? 'Student';
                 <circle cx="11" cy="11" r="8"></circle>
                 <path d="m21 21-4.35-4.35"></path>
             </svg>
-            <input 
-                type="text" 
-                id="globalSearch" 
-                placeholder="Search UIU Social Connect..." 
+            <input
+                type="text"
+                id="globalSearch"
+                placeholder="Search UIU Social Connect..."
                 style="width: 100%; height: 40px; padding: 0 1rem 0 3rem; background: var(--bg-primary); border: 1px solid transparent; border-radius: 20px; font-size: 15px; transition: all 0.3s ease;"
                 onfocus="this.style.background='var(--bg-secondary)'; this.style.borderColor='var(--border-medium)';"
-                onblur="this.style.background='var(--bg-primary)'; this.style.borderColor='transparent';"
-            >
+                onblur="this.style.background='var(--bg-primary)'; this.style.borderColor='transparent';">
         </div>
     </div>
 
@@ -56,7 +55,7 @@ $userRole = $_SESSION['user_role'] ?? 'Student';
                     <h4 style="margin: 0; font-size: 15px;"><?php echo htmlspecialchars($userName); ?></h4>
                     <p style="margin: 0; font-size: 13px; color: var(--text-secondary);"><?php echo htmlspecialchars($userRole); ?></p>
                 </div>
-                
+
                 <a href="profile.php" class="dropdown-item">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
@@ -64,7 +63,7 @@ $userRole = $_SESSION['user_role'] ?? 'Student';
                     </svg>
                     <span>My Profile</span>
                 </a>
-                
+
                 <a href="settings.php" class="dropdown-item">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="3"></circle>
@@ -72,9 +71,9 @@ $userRole = $_SESSION['user_role'] ?? 'Student';
                     </svg>
                     <span>Settings</span>
                 </a>
-                
+
                 <div class="dropdown-divider"></div>
-                
+
                 <a href="../api/auth.php?action=logout" class="dropdown-item" style="color: var(--error);">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
@@ -94,7 +93,7 @@ $userRole = $_SESSION['user_role'] ?? 'Student';
         <h4 style="margin: 0; font-size: 17px; font-weight: 600;">Notifications</h4>
         <button class="btn btn-ghost btn-sm" id="markAllReadBtn" style="font-size: 13px;">Mark all read</button>
     </div>
-    
+
     <div id="notificationsList">
         <!-- Notifications will be loaded here dynamically -->
         <div style="padding: 2rem; text-align: center; color: var(--text-secondary);">
@@ -105,35 +104,40 @@ $userRole = $_SESSION['user_role'] ?? 'Student';
 </div>
 
 <style>
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
+    @keyframes spin {
+        0% {
+            transform: rotate(0deg);
+        }
 
-.notification-item {
-    padding: 1rem;
-    border-bottom: 1px solid var(--border-light);
-    cursor: pointer;
-    transition: background 0.2s ease;
-}
+        100% {
+            transform: rotate(360deg);
+        }
+    }
 
-.notification-item:hover {
-    background: var(--bg-secondary);
-}
+    .notification-item {
+        padding: 1rem;
+        border-bottom: 1px solid var(--border-light);
+        cursor: pointer;
+        transition: background 0.2s ease;
+    }
 
-.notification-item.unread {
-    background: rgba(255, 122, 0, 0.05);
-}
+    .notification-item:hover {
+        background: var(--bg-secondary);
+    }
 
-.notification-item.unread::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 3px;
-    background: var(--primary-orange);
-}
+    .notification-item.unread {
+        background: rgba(255, 122, 0, 0.05);
+    }
+
+    .notification-item.unread::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        background: var(--primary-orange);
+    }
 </style>
 
 <script>
@@ -141,7 +145,7 @@ $userRole = $_SESSION['user_role'] ?? 'Student';
     document.addEventListener('DOMContentLoaded', () => {
         loadNotificationCount();
         loadMessageCount();
-        
+
         // Refresh counts every 30 seconds
         setInterval(() => {
             loadNotificationCount();
@@ -154,7 +158,7 @@ $userRole = $_SESSION['user_role'] ?? 'Student';
         try {
             const response = await fetch('../api/notifications.php?action=get_unread_count');
             const data = await response.json();
-            
+
             if (data.success) {
                 const badge = document.getElementById('notificationCount');
                 if (data.count > 0) {
@@ -174,7 +178,7 @@ $userRole = $_SESSION['user_role'] ?? 'Student';
         try {
             const response = await fetch('../api/messages.php?action=get_unread_count');
             const data = await response.json();
-            
+
             if (data.success) {
                 const badge = document.getElementById('messageCount');
                 if (data.count > 0) {
@@ -237,7 +241,7 @@ $userRole = $_SESSION['user_role'] ?? 'Student';
         try {
             const formData = new FormData();
             formData.append('notification_id', notificationId);
-            
+
             await fetch('../api/notifications.php?action=mark_read', {
                 method: 'POST',
                 body: formData
@@ -266,7 +270,7 @@ $userRole = $_SESSION['user_role'] ?? 'Student';
             'message': 'messages.php',
             'profile': `profile.php?id=${id}`
         };
-        
+
         if (routes[type]) {
             window.location.href = routes[type];
         }
@@ -290,13 +294,13 @@ $userRole = $_SESSION['user_role'] ?? 'Student';
     // Mark all as read
     document.getElementById('markAllReadBtn')?.addEventListener('click', async (e) => {
         e.stopPropagation();
-        
+
         try {
             const response = await fetch('../api/notifications.php?action=mark_all_read', {
                 method: 'POST'
             });
             const data = await response.json();
-            
+
             if (data.success) {
                 loadNotificationCount();
                 loadNotifications();
@@ -323,14 +327,14 @@ $userRole = $_SESSION['user_role'] ?? 'Student';
     notificationsBtn?.addEventListener('click', (e) => {
         e.stopPropagation();
         const isVisible = notificationsDropdown.style.display === 'block';
-        
+
         if (!isVisible) {
             notificationsDropdown.style.display = 'block';
             loadNotifications(); // Load notifications when opening
         } else {
             notificationsDropdown.style.display = 'none';
         }
-        
+
         userDropdownMenu.classList.remove('active');
     });
 

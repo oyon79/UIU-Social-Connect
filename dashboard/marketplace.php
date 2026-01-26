@@ -20,36 +20,176 @@ require_once '../includes/header.php';
 ?>
 
 <style>
-    body { background: var(--gray-light); }
-    .main-container { margin-left: 280px; min-height: 100vh; padding: 2rem; }
-    .marketplace-header { background: white; border-radius: 20px; padding: 2rem; margin-bottom: 2rem; box-shadow: var(--shadow-md); display: flex; justify-content: space-between; align-items: center; }
-    .marketplace-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
-    .product-card { background: white; border-radius: 16px; overflow: hidden; box-shadow: var(--shadow-md); transition: all 0.3s ease; position: relative; }
-    .product-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
-    .product-image { width: 100%; height: 200px; object-fit: cover; background: linear-gradient(135deg, var(--gray-light), var(--gray-medium)); }
-    .product-image img { width: 100%; height: 100%; object-fit: cover; }
-    .product-content { padding: 1.25rem; }
-    .product-price { font-size: 1.5rem; font-weight: 700; color: var(--primary-orange); margin-bottom: 0.5rem; }
-    .product-title { font-weight: 600; margin-bottom: 0.5rem; }
-    .product-actions { display: flex; gap: 0.5rem; margin-top: 1rem; }
-    .product-menu { position: absolute; top: 0.75rem; right: 0.75rem; }
-    .product-menu-btn { background: rgba(255, 255, 255, 0.9); border: none; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: var(--shadow-sm); }
-    .product-menu-dropdown { position: absolute; top: 100%; right: 0; background: white; border-radius: 8px; box-shadow: var(--shadow-lg); margin-top: 0.5rem; min-width: 150px; z-index: 10; display: none; }
-    .product-menu-dropdown.active { display: block; }
-    .product-menu-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1rem; cursor: pointer; border: none; background: none; width: 100%; text-align: left; font-size: 0.875rem; }
-    .product-menu-item:hover { background: var(--gray-light); }
-    .product-menu-item.danger { color: var(--error); }
-    .image-preview { width: 100%; height: 200px; object-fit: cover; border-radius: 8px; margin-top: 0.5rem; }
-    .image-preview-container { position: relative; }
-    .remove-image-btn { position: absolute; top: 0.5rem; right: 0.5rem; background: var(--error); color: white; border: none; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; }
-    @media (max-width: 768px) { .main-container { margin-left: 0; } }
+    body {
+        background: var(--gray-light);
+    }
+
+    .main-container {
+        margin-left: 280px;
+        min-height: 100vh;
+        padding: 2rem;
+    }
+
+    .marketplace-header {
+        background: white;
+        border-radius: 20px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: var(--shadow-md);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .marketplace-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .product-card {
+        background: white;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: var(--shadow-md);
+        transition: all 0.3s ease;
+        position: relative;
+    }
+
+    .product-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .product-image {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+        background: linear-gradient(135deg, var(--gray-light), var(--gray-medium));
+    }
+
+    .product-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .product-content {
+        padding: 1.25rem;
+    }
+
+    .product-price {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--primary-orange);
+        margin-bottom: 0.5rem;
+    }
+
+    .product-title {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+
+    .product-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+
+    .product-menu {
+        position: absolute;
+        top: 0.75rem;
+        right: 0.75rem;
+    }
+
+    .product-menu-btn {
+        background: rgba(255, 255, 255, 0.9);
+        border: none;
+        border-radius: 50%;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .product-menu-dropdown {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        background: white;
+        border-radius: 8px;
+        box-shadow: var(--shadow-lg);
+        margin-top: 0.5rem;
+        min-width: 150px;
+        z-index: 10;
+        display: none;
+    }
+
+    .product-menu-dropdown.active {
+        display: block;
+    }
+
+    .product-menu-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
+        cursor: pointer;
+        border: none;
+        background: none;
+        width: 100%;
+        text-align: left;
+        font-size: 0.875rem;
+    }
+
+    .product-menu-item:hover {
+        background: var(--gray-light);
+    }
+
+    .product-menu-item.danger {
+        color: var(--error);
+    }
+
+    .image-preview {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+        border-radius: 8px;
+        margin-top: 0.5rem;
+    }
+
+    .image-preview-container {
+        position: relative;
+    }
+
+    .remove-image-btn {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        background: var(--error);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 32px;
+        height: 32px;
+        cursor: pointer;
+    }
+
+    @media (max-width: 768px) {
+        .main-container {
+            margin-left: 0;
+        }
+    }
 </style>
 
 <?php include '../includes/sidebar.php'; ?>
 
 <div class="main-container">
     <?php include '../includes/navbar.php'; ?>
-    
+
     <div class="marketplace-header animate-fade-in">
         <div>
             <h1>🛒 Student Marketplace</h1>
@@ -150,11 +290,11 @@ require_once '../includes/header.php';
         try {
             const response = await fetch('../api/marketplace.php?action=get_all');
             const data = await response.json();
-            
+
             console.log('Marketplace API Response:', data);
-            
+
             const grid = document.getElementById('marketplaceGrid');
-            
+
             if (data.success && data.items && data.items.length > 0) {
                 grid.innerHTML = data.items.map(item => {
                     const isOwner = item.user_id == currentUserId;
@@ -257,11 +397,11 @@ require_once '../includes/header.php';
         try {
             const response = await fetch(`../api/marketplace.php?action=get_by_id&id=${itemId}`);
             const data = await response.json();
-            
+
             if (data.success && data.item) {
                 const item = data.item;
                 editingItemId = itemId;
-                
+
                 document.getElementById('modalTitle').textContent = 'Edit Item';
                 document.getElementById('itemId').value = item.id;
                 document.getElementById('itemTitle').value = item.title;
@@ -270,7 +410,7 @@ require_once '../includes/header.php';
                 document.getElementById('itemCategory').value = item.category || 'Other';
                 document.getElementById('itemCondition').value = item.condition_status || 'good';
                 document.getElementById('submitBtn').textContent = 'Update Item';
-                
+
                 // Show current image if exists
                 if (item.image_url) {
                     document.getElementById('currentImage').src = '../' + item.image_url;
@@ -279,7 +419,7 @@ require_once '../includes/header.php';
                 } else {
                     document.getElementById('currentImageContainer').style.display = 'none';
                 }
-                
+
                 openListModal();
             } else {
                 alert('Failed to load item details');
@@ -292,14 +432,18 @@ require_once '../includes/header.php';
 
     async function deleteItem(itemId) {
         if (!confirm('Are you sure you want to delete this item?')) return;
-        
+
         try {
             const response = await fetch('../api/marketplace.php?action=delete', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: itemId })
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    id: itemId
+                })
             });
-            
+
             const data = await response.json();
             if (data.success) {
                 showAlert('Item deleted successfully', 'success');
@@ -315,14 +459,18 @@ require_once '../includes/header.php';
 
     async function markAsSold(itemId) {
         if (!confirm('Mark this item as sold?')) return;
-        
+
         try {
             const response = await fetch('../api/marketplace.php?action=mark_sold', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: itemId })
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    id: itemId
+                })
             });
-            
+
             const data = await response.json();
             if (data.success) {
                 showAlert('Item marked as sold', 'success');
@@ -385,38 +533,38 @@ require_once '../includes/header.php';
         const condition = document.getElementById('itemCondition').value;
         const itemId = document.getElementById('itemId').value;
         const removeImage = document.getElementById('itemId').getAttribute('data-remove-image') === '1';
-        
+
         if (!title || !description || !price || parseFloat(price) <= 0) {
             alert('Please fill all fields with valid values');
             return;
         }
-        
+
         const formData = new FormData();
         formData.append('title', title);
         formData.append('description', description);
         formData.append('price', price);
         formData.append('category', category);
         formData.append('condition_status', condition);
-        
+
         if (itemId) {
             formData.append('id', itemId);
             if (removeImage) {
                 formData.append('remove_image', '1');
             }
         }
-        
+
         const imageFile = document.getElementById('itemImage').files[0];
         if (imageFile) {
             formData.append('image', imageFile);
         }
-        
+
         try {
             const action = itemId ? 'update' : 'create';
             const response = await fetch(`../api/marketplace.php?action=${action}`, {
                 method: 'POST',
                 body: formData
             });
-            
+
             const data = await response.json();
             if (data.success) {
                 closeListModal();
@@ -455,4 +603,5 @@ require_once '../includes/header.php';
 </script>
 
 </body>
+
 </html>

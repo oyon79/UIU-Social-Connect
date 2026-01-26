@@ -20,9 +20,16 @@ require_once '../includes/header.php';
 ?>
 
 <style>
-    body { background: var(--gray-light); }
-    .main-container { margin-left: 280px; min-height: 100vh; padding: 2rem; }
-    
+    body {
+        background: var(--gray-light);
+    }
+
+    .main-container {
+        margin-left: 280px;
+        min-height: 100vh;
+        padding: 2rem;
+    }
+
     .documents-header {
         background: white;
         border-radius: 20px;
@@ -35,7 +42,7 @@ require_once '../includes/header.php';
         flex-wrap: wrap;
         gap: 1rem;
     }
-    
+
     .search-filter-bar {
         background: white;
         border-radius: 16px;
@@ -46,23 +53,23 @@ require_once '../includes/header.php';
         gap: 1rem;
         flex-wrap: wrap;
     }
-    
+
     .documents-table {
         background: white;
         border-radius: 16px;
         overflow: hidden;
         box-shadow: var(--shadow-md);
     }
-    
+
     .table {
         width: 100%;
         border-collapse: collapse;
     }
-    
+
     .table thead {
         background: var(--gray-light);
     }
-    
+
     .table th {
         padding: 1rem;
         text-align: left;
@@ -70,16 +77,16 @@ require_once '../includes/header.php';
         color: var(--dark-text);
         border-bottom: 2px solid var(--gray-medium);
     }
-    
+
     .table td {
         padding: 1rem;
         border-bottom: 1px solid var(--gray-light);
     }
-    
+
     .table tr:hover {
         background: var(--gray-light);
     }
-    
+
     .doc-type-badge {
         display: inline-block;
         padding: 0.25rem 0.75rem;
@@ -89,7 +96,7 @@ require_once '../includes/header.php';
         background: var(--primary-orange-light);
         color: var(--primary-orange);
     }
-    
+
     .status-badge {
         display: inline-block;
         padding: 0.25rem 0.75rem;
@@ -97,22 +104,22 @@ require_once '../includes/header.php';
         font-size: 0.75rem;
         font-weight: 600;
     }
-    
+
     .status-approved {
         background: #10B981;
         color: white;
     }
-    
+
     .status-pending {
         background: #F59E0B;
         color: white;
     }
-    
+
     .status-rejected {
         background: #EF4444;
         color: white;
     }
-    
+
     .action-btn {
         padding: 0.5rem 1rem;
         border: none;
@@ -122,25 +129,25 @@ require_once '../includes/header.php';
         font-weight: 500;
         transition: all 0.3s ease;
     }
-    
+
     .action-btn-download {
         background: var(--primary-orange);
         color: white;
     }
-    
+
     .action-btn-download:hover {
         background: var(--primary-orange-light);
     }
-    
+
     .action-btn-delete {
         background: var(--error);
         color: white;
     }
-    
+
     .action-btn-delete:hover {
         background: #DC2626;
     }
-    
+
     .modal {
         display: none;
         position: fixed;
@@ -152,7 +159,7 @@ require_once '../includes/header.php';
         justify-content: center;
         align-items: center;
     }
-    
+
     .modal-backdrop {
         position: fixed;
         top: 0;
@@ -162,7 +169,7 @@ require_once '../includes/header.php';
         background: rgba(0, 0, 0, 0.5);
         z-index: 1;
     }
-    
+
     .modal-content {
         position: relative;
         background: white;
@@ -175,7 +182,7 @@ require_once '../includes/header.php';
         z-index: 2;
         animation: scaleIn 0.3s ease;
     }
-    
+
     .modal-header {
         padding: 1.5rem 2rem;
         border-bottom: 1px solid var(--gray-light);
@@ -183,13 +190,13 @@ require_once '../includes/header.php';
         justify-content: space-between;
         align-items: center;
     }
-    
+
     .modal-title {
         margin: 0;
         font-size: 1.5rem;
         color: var(--dark-text);
     }
-    
+
     .modal-close {
         background: none;
         border: none;
@@ -205,16 +212,16 @@ require_once '../includes/header.php';
         border-radius: 8px;
         transition: all 0.3s ease;
     }
-    
+
     .modal-close:hover {
         background: var(--gray-light);
         color: var(--dark-text);
     }
-    
+
     .modal-body {
         padding: 2rem;
     }
-    
+
     .modal-footer {
         padding: 1.5rem 2rem;
         border-top: 1px solid var(--gray-light);
@@ -222,27 +229,41 @@ require_once '../includes/header.php';
         justify-content: flex-end;
         gap: 1rem;
     }
-    
+
     @keyframes scaleIn {
         from {
             transform: scale(0.9);
             opacity: 0;
         }
+
         to {
             transform: scale(1);
             opacity: 1;
         }
     }
-    
+
     @media (max-width: 768px) {
-        .main-container { margin-left: 0; }
-        .table { font-size: 0.875rem; }
-        .table th, .table td { padding: 0.75rem 0.5rem; }
+        .main-container {
+            margin-left: 0;
+        }
+
+        .table {
+            font-size: 0.875rem;
+        }
+
+        .table th,
+        .table td {
+            padding: 0.75rem 0.5rem;
+        }
+
         .modal-content {
             width: 95%;
             max-height: 95vh;
         }
-        .modal-header, .modal-body, .modal-footer {
+
+        .modal-header,
+        .modal-body,
+        .modal-footer {
             padding: 1.25rem;
         }
     }
@@ -252,7 +273,7 @@ require_once '../includes/header.php';
 
 <div class="main-container">
     <?php include '../includes/navbar.php'; ?>
-    
+
     <div class="documents-header animate-fade-in">
         <div>
             <h1>📚 Notes & Documents</h1>
@@ -517,4 +538,5 @@ require_once '../includes/header.php';
     }
 </script>
 </body>
+
 </html>

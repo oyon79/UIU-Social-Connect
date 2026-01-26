@@ -14,6 +14,7 @@ $pageTitle = 'Documents Management - Admin Panel';
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -22,21 +23,89 @@ $pageTitle = 'Documents Management - Admin Panel';
     <link rel="stylesheet" href="../assets/css/main.css">
     <link rel="stylesheet" href="../assets/css/animations.css">
     <style>
-        body { background: var(--gray-light); }
-        .admin-container { max-width: 1600px; margin: 0 auto; padding: 2rem; }
-        .admin-header { background: white; border-radius: 20px; padding: 2rem; margin-bottom: 2rem; box-shadow: var(--shadow-md); }
-        .admin-nav { display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap; }
-        .admin-nav-link { padding: 0.875rem 1.75rem; background: white; border-radius: 12px; text-decoration: none; color: var(--dark-text); font-weight: 600; transition: all 0.3s ease; box-shadow: var(--shadow-sm); display: flex; align-items: center; gap: 0.5rem; }
-        .admin-nav-link:hover { background: var(--primary-orange); color: white; transform: translateY(-2px); }
-        .admin-nav-link.active { background: linear-gradient(135deg, var(--primary-orange), var(--primary-orange-light)); color: white; }
-        
-        .documents-table { background: white; border-radius: 16px; overflow: hidden; box-shadow: var(--shadow-md); }
-        .table { width: 100%; border-collapse: collapse; }
-        .table thead { background: var(--gray-light); }
-        .table th { padding: 1rem; text-align: left; font-weight: 600; color: var(--dark-text); border-bottom: 2px solid var(--gray-medium); }
-        .table td { padding: 1rem; border-bottom: 1px solid var(--gray-light); }
-        .table tr:hover { background: var(--gray-light); }
-        
+        body {
+            background: var(--gray-light);
+        }
+
+        .admin-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .admin-header {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-md);
+        }
+
+        .admin-nav {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .admin-nav-link {
+            padding: 0.875rem 1.75rem;
+            background: white;
+            border-radius: 12px;
+            text-decoration: none;
+            color: var(--dark-text);
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .admin-nav-link:hover {
+            background: var(--primary-orange);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .admin-nav-link.active {
+            background: linear-gradient(135deg, var(--primary-orange), var(--primary-orange-light));
+            color: white;
+        }
+
+        .documents-table {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table thead {
+            background: var(--gray-light);
+        }
+
+        .table th {
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: var(--dark-text);
+            border-bottom: 2px solid var(--gray-medium);
+        }
+
+        .table td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--gray-light);
+        }
+
+        .table tr:hover {
+            background: var(--gray-light);
+        }
+
         .status-badge {
             display: inline-block;
             padding: 0.25rem 0.75rem;
@@ -44,14 +113,30 @@ $pageTitle = 'Documents Management - Admin Panel';
             font-size: 0.75rem;
             font-weight: 600;
         }
-        
-        .status-pending { background: #F59E0B; color: white; }
-        .status-approved { background: #10B981; color: white; }
-        .status-rejected { background: #EF4444; color: white; }
-        
-        .action-btns { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+        .status-pending {
+            background: #F59E0B;
+            color: white;
+        }
+
+        .status-approved {
+            background: #10B981;
+            color: white;
+        }
+
+        .status-rejected {
+            background: #EF4444;
+            color: white;
+        }
+
+        .action-btns {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
     </style>
 </head>
+
 <body>
     <div class="admin-container">
         <div class="admin-header animate-fade-in">
@@ -128,14 +213,14 @@ $pageTitle = 'Documents Management - Admin Panel';
             try {
                 const response = await fetch('../api/admin.php?action=get_documents');
                 const data = await response.json();
-                
+
                 const tbody = document.getElementById('documentsBody');
-                
+
                 if (data.success && data.documents && data.documents.length > 0) {
                     tbody.innerHTML = data.documents.map(doc => {
                         let statusClass = 'status-pending';
                         let statusText = 'Pending';
-                        
+
                         if (doc.is_approved == 1) {
                             statusClass = 'status-approved';
                             statusText = 'Approved';
@@ -143,7 +228,7 @@ $pageTitle = 'Documents Management - Admin Panel';
                             statusClass = 'status-rejected';
                             statusText = 'Rejected';
                         }
-                        
+
                         return `
                             <tr>
                                 <td>${doc.id}</td>
@@ -195,12 +280,16 @@ $pageTitle = 'Documents Management - Admin Panel';
             try {
                 const response = await fetch('../api/admin.php?action=approve_document', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ doc_id: docId })
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        doc_id: docId
+                    })
                 });
 
                 const data = await response.json();
-                
+
                 if (data.success) {
                     alert(data.message);
                     loadDocuments();
@@ -220,12 +309,17 @@ $pageTitle = 'Documents Management - Admin Panel';
             try {
                 const response = await fetch('../api/admin.php?action=reject_document', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ doc_id: docId, reason: reason })
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        doc_id: docId,
+                        reason: reason
+                    })
                 });
 
                 const data = await response.json();
-                
+
                 if (data.success) {
                     alert(data.message);
                     loadDocuments();
@@ -244,12 +338,16 @@ $pageTitle = 'Documents Management - Admin Panel';
             try {
                 const response = await fetch('../api/admin.php?action=delete_document', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ doc_id: docId })
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        doc_id: docId
+                    })
                 });
 
                 const data = await response.json();
-                
+
                 if (data.success) {
                     alert(data.message);
                     loadDocuments();
@@ -270,8 +368,13 @@ $pageTitle = 'Documents Management - Admin Panel';
 
         function formatDate(dateString) {
             const date = new Date(dateString);
-            return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
         }
     </script>
 </body>
+
 </html>

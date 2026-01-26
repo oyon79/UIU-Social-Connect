@@ -20,23 +20,76 @@ require_once '../includes/header.php';
 ?>
 
 <style>
-    body { background: var(--gray-light); }
-    .main-container { margin-left: 280px; min-height: 100vh; padding: 2rem; }
-    .notices-header { background: white; border-radius: 20px; padding: 2rem; margin-bottom: 2rem; box-shadow: var(--shadow-md); display: flex; justify-content: space-between; align-items: center; }
-    .notices-list { display: flex; flex-direction: column; gap: 1.5rem; }
-    .notice-card { background: white; border-radius: 16px; padding: 1.5rem; box-shadow: var(--shadow-md); border-left: 4px solid var(--primary-orange); }
-    .notice-card.urgent { border-left-color: var(--error); }
-    .notice-priority { padding: 0.375rem 0.875rem; border-radius: 20px; font-size: 0.8125rem; font-weight: 600; display: inline-block; margin-bottom: 1rem; }
-    .notice-priority.urgent { background: #FEE2E2; color: var(--error); }
-    .notice-priority.normal { background: #EFF6FF; color: #3B82F6; }
-    @media (max-width: 768px) { .main-container { margin-left: 0; } }
+    body {
+        background: var(--gray-light);
+    }
+
+    .main-container {
+        margin-left: 280px;
+        min-height: 100vh;
+        padding: 2rem;
+    }
+
+    .notices-header {
+        background: white;
+        border-radius: 20px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: var(--shadow-md);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .notices-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .notice-card {
+        background: white;
+        border-radius: 16px;
+        padding: 1.5rem;
+        box-shadow: var(--shadow-md);
+        border-left: 4px solid var(--primary-orange);
+    }
+
+    .notice-card.urgent {
+        border-left-color: var(--error);
+    }
+
+    .notice-priority {
+        padding: 0.375rem 0.875rem;
+        border-radius: 20px;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        display: inline-block;
+        margin-bottom: 1rem;
+    }
+
+    .notice-priority.urgent {
+        background: #FEE2E2;
+        color: var(--error);
+    }
+
+    .notice-priority.normal {
+        background: #EFF6FF;
+        color: #3B82F6;
+    }
+
+    @media (max-width: 768px) {
+        .main-container {
+            margin-left: 0;
+        }
+    }
 </style>
 
 <?php include '../includes/sidebar.php'; ?>
 
 <div class="main-container">
     <?php include '../includes/navbar.php'; ?>
-    
+
     <div class="notices-header animate-fade-in">
         <div>
             <h1>📢 Notice Board</h1>
@@ -99,15 +152,15 @@ require_once '../includes/header.php';
         try {
             const response = await fetch('../api/notices.php?action=get_all');
             const data = await response.json();
-            
+
             console.log('Notices API Response:', data); // Debug log
-            
+
             const list = document.getElementById('noticesList');
-            
+
             if (data.success && data.notices && data.notices.length > 0) {
                 list.innerHTML = data.notices.map(notice => {
-                    const priorityClass = notice.priority === 'urgent' ? 'urgent' : 
-                                        notice.priority === 'high' ? 'high' : 'normal';
+                    const priorityClass = notice.priority === 'urgent' ? 'urgent' :
+                        notice.priority === 'high' ? 'high' : 'normal';
                     return `
                     <div class="notice-card ${priorityClass} animate-slide-up">
                         <span class="notice-priority ${priorityClass}">${(notice.priority || 'normal').toUpperCase()}</span>
@@ -166,8 +219,14 @@ require_once '../includes/header.php';
         try {
             const response = await fetch('../api/notices.php?action=create', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title, content, priority })
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    title,
+                    content,
+                    priority
+                })
             });
 
             const data = await response.json();
@@ -188,7 +247,7 @@ require_once '../includes/header.php';
         const now = new Date();
         const postTime = new Date(timestamp);
         const diffInSeconds = Math.floor((now - postTime) / 1000);
-        
+
         if (diffInSeconds < 60) return 'Just now';
         if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
         if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
@@ -204,4 +263,5 @@ require_once '../includes/header.php';
 </script>
 
 </body>
+
 </html>

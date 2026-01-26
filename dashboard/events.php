@@ -20,26 +20,98 @@ require_once '../includes/header.php';
 ?>
 
 <style>
-    body { background: var(--gray-light); }
-    .main-container { margin-left: 280px; min-height: 100vh; padding: 2rem; }
-    .events-header { background: white; border-radius: 20px; padding: 2rem; margin-bottom: 2rem; box-shadow: var(--shadow-md); display: flex; justify-content: space-between; align-items: center; }
-    .events-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 1.5rem; }
-    .event-card { background: white; border-radius: 16px; overflow: hidden; box-shadow: var(--shadow-md); transition: all 0.3s ease; }
-    .event-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
-    .event-image { width: 100%; height: 200px; object-fit: cover; background: linear-gradient(135deg, var(--primary-orange), var(--primary-orange-light)); }
-    .event-content { padding: 1.5rem; }
-    .event-date { display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; color: var(--gray-dark); margin-bottom: 0.75rem; }
-    .event-title { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem; }
-    .event-meta { display: flex; align-items: center; gap: 1rem; font-size: 0.875rem; color: var(--gray-dark); margin-bottom: 1rem; }
-    .event-actions { display: flex; gap: 0.75rem; }
-    @media (max-width: 768px) { .main-container { margin-left: 0; } }
+    body {
+        background: var(--gray-light);
+    }
+
+    .main-container {
+        margin-left: 280px;
+        min-height: 100vh;
+        padding: 2rem;
+    }
+
+    .events-header {
+        background: white;
+        border-radius: 20px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: var(--shadow-md);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .events-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .event-card {
+        background: white;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: var(--shadow-md);
+        transition: all 0.3s ease;
+    }
+
+    .event-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .event-image {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+        background: linear-gradient(135deg, var(--primary-orange), var(--primary-orange-light));
+    }
+
+    .event-content {
+        padding: 1.5rem;
+    }
+
+    .event-date {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--gray-dark);
+        margin-bottom: 0.75rem;
+    }
+
+    .event-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+
+    .event-meta {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        font-size: 0.875rem;
+        color: var(--gray-dark);
+        margin-bottom: 1rem;
+    }
+
+    .event-actions {
+        display: flex;
+        gap: 0.75rem;
+    }
+
+    @media (max-width: 768px) {
+        .main-container {
+            margin-left: 0;
+        }
+    }
 </style>
 
 <?php include '../includes/sidebar.php'; ?>
 
 <div class="main-container">
     <?php include '../includes/navbar.php'; ?>
-    
+
     <div class="events-header animate-fade-in">
         <div>
             <h1>📅 Events & Workshops</h1>
@@ -104,28 +176,28 @@ require_once '../includes/header.php';
         try {
             const response = await fetch('../api/events.php?action=get_all');
             const data = await response.json();
-            
+
             console.log('Events API Response:', data); // Debug log
-            
+
             const grid = document.getElementById('eventsGrid');
-            
+
             if (data.success && data.events && data.events.length > 0) {
                 grid.innerHTML = data.events.map(event => {
                     // Format date and time
                     const eventDate = new Date(event.event_date + ' ' + (event.event_time || '00:00:00'));
-                    const formattedDate = eventDate.toLocaleDateString('en-US', { 
-                        weekday: 'short', 
-                        year: 'numeric', 
-                        month: 'short', 
-                        day: 'numeric' 
+                    const formattedDate = eventDate.toLocaleDateString('en-US', {
+                        weekday: 'short',
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
                     });
-                    const formattedTime = event.event_time ? 
-                        new Date('2000-01-01 ' + event.event_time).toLocaleTimeString('en-US', { 
-                            hour: 'numeric', 
+                    const formattedTime = event.event_time ?
+                        new Date('2000-01-01 ' + event.event_time).toLocaleTimeString('en-US', {
+                            hour: 'numeric',
                             minute: '2-digit',
-                            hour12: true 
+                            hour12: true
                         }) : '';
-                    
+
                     return `
                     <div class="event-card animate-scale-in">
                         <div class="event-image"></div>
@@ -207,8 +279,15 @@ require_once '../includes/header.php';
         try {
             const response = await fetch('../api/events.php?action=create', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title, description, event_date: eventDate, location })
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    title,
+                    description,
+                    event_date: eventDate,
+                    location
+                })
             });
 
             const data = await response.json();
@@ -229,12 +308,17 @@ require_once '../includes/header.php';
         try {
             const response = await fetch('../api/events.php?action=rsvp', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ event_id: eventId, status })
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    event_id: eventId,
+                    status
+                })
             });
 
             const data = await response.json();
-            
+
             if (data.success) {
                 // Show success message
                 showAlert(data.message || 'RSVP updated!', 'success');
@@ -259,7 +343,7 @@ require_once '../includes/header.php';
         alert.style.minWidth = '300px';
         alert.innerHTML = `<span>${message}</span>`;
         document.body.appendChild(alert);
-        
+
         setTimeout(() => {
             alert.style.animation = 'fadeOut 0.3s ease';
             setTimeout(() => alert.remove(), 300);
@@ -274,4 +358,5 @@ require_once '../includes/header.php';
 </script>
 
 </body>
+
 </html>

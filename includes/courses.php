@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Course Data for UIU - CSE and EEE Departments
  * Organized by Department and Trimester
@@ -186,17 +187,18 @@ $EEE_COURSES = [
  * @param int $trimester Trimester number (1-12)
  * @return array Array of courses
  */
-function getCoursesByTrimester($department, $trimester) {
+function getCoursesByTrimester($department, $trimester)
+{
     global $CSE_COURSES, $EEE_COURSES;
-    
+
     $trimester = (int)$trimester;
-    
+
     if ($department === 'CSE' && isset($CSE_COURSES[$trimester])) {
         return $CSE_COURSES[$trimester];
     } elseif ($department === 'EEE' && isset($EEE_COURSES[$trimester])) {
         return $EEE_COURSES[$trimester];
     }
-    
+
     return [];
 }
 
@@ -206,14 +208,15 @@ function getCoursesByTrimester($department, $trimester) {
  * @param string $department Department code (CSE or EEE)
  * @return array Array of trimester numbers
  */
-function getAvailableTrimesters($department) {
+function getAvailableTrimesters($department)
+{
     global $CSE_COURSES, $EEE_COURSES;
-    
+
     if ($department === 'CSE') {
         return array_keys($CSE_COURSES);
     } elseif ($department === 'EEE') {
         return array_keys($EEE_COURSES);
     }
-    
+
     return [];
 }
