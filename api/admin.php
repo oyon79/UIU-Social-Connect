@@ -125,7 +125,7 @@ function getAllUsers($db)
 
 function getAllContent($db)
 {
-    $sql = "SELECT p.*, u.full_name as author_name,
+    $sql = "SELECT p.*, u.full_name as author_name, u.profile_image as author_image,
             (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id) as likes_count,
             (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comments_count
             FROM posts p
@@ -200,15 +200,15 @@ function getDocuments($db)
             FROM documents d
             INNER JOIN users u ON d.user_id = u.id
             ORDER BY d.created_at DESC";
-    
+
     $documents = $db->query($sql);
-    
+
     if ($documents) {
         foreach ($documents as &$doc) {
             $doc['file_size_formatted'] = formatFileSize($doc['file_size']);
         }
     }
-    
+
     echo json_encode([
         'success' => true,
         'documents' => $documents ?: []
@@ -220,15 +220,15 @@ function approveDocument($db)
     $data = json_decode(file_get_contents('php://input'), true);
     $docId = intval($data['doc_id'] ?? 0);
     $adminId = $_SESSION['user_id'];
-    
+
     if (!$docId) {
         echo json_encode(['success' => false, 'message' => 'Invalid document ID']);
         return;
     }
-    
+
     $sql = "UPDATE documents SET is_approved = 1, approved_by = ?, approved_at = NOW(), rejection_reason = NULL WHERE id = ?";
     $result = $db->query($sql, [$adminId, $docId]);
-    
+
     echo json_encode([
         'success' => $result ? true : false,
         'message' => $result ? 'Document approved successfully' : 'Failed to approve document'
@@ -240,15 +240,15 @@ function rejectDocument($db)
     $data = json_decode(file_get_contents('php://input'), true);
     $docId = intval($data['doc_id'] ?? 0);
     $reason = trim($data['reason'] ?? '');
-    
+
     if (!$docId || !$reason) {
         echo json_encode(['success' => false, 'message' => 'Document ID and reason are required']);
         return;
     }
-    
+
     $sql = "UPDATE documents SET is_approved = 0, rejection_reason = ? WHERE id = ?";
     $result = $db->query($sql, [$reason, $docId]);
-    
+
     echo json_encode([
         'success' => $result ? true : false,
         'message' => $result ? 'Document rejected' : 'Failed to reject document'
@@ -259,23 +259,23 @@ function deleteDocument($db)
 {
     $data = json_decode(file_get_contents('php://input'), true);
     $docId = intval($data['doc_id'] ?? 0);
-    
+
     if (!$docId) {
         echo json_encode(['success' => false, 'message' => 'Invalid document ID']);
         return;
     }
-    
+
     // Get document details
     $sql = "SELECT file_path FROM documents WHERE id = ?";
     $doc = $db->query($sql, [$docId]);
-    
+
     if (!$doc || empty($doc)) {
         echo json_encode(['success' => false, 'message' => 'Document not found']);
         return;
     }
-    
+
     $filePath = '../' . $doc[0]['file_path'];
-    
+
     // Delete from database
     $deleteSql = "DELETE FROM documents WHERE id = ?";
     if ($db->query($deleteSql, [$docId])) {
@@ -296,6 +296,6 @@ function formatFileSize($bytes)
     $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
     $pow = min($pow, count($units) - 1);
     $bytes /= (1 << (10 * $pow));
-    
+
     return round($bytes, 2) . ' ' . $units[$pow];
 }

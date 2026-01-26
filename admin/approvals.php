@@ -440,12 +440,17 @@ $pageTitle = 'Approvals - Admin Panel';
                 document.getElementById('postsCount').textContent = data.posts?.length || 0;
 
                 if (data.success && data.posts && data.posts.length > 0) {
-                    container.innerHTML = data.posts.map(post => `
+                    container.innerHTML = data.posts.map(post => {
+                        const authorImage = post.author_image || 'default-avatar.png';
+                        const authorImageUrl = authorImage !== 'default-avatar.png' ? `../${authorImage}` : '';
+                        const authorInitial = post.author_name.charAt(0).toUpperCase();
+
+                        return `
                         <div class="approval-card animate-slide-up">
                             <div class="approval-header">
                                 <div class="approval-user">
                                     <div class="avatar">
-                                        <span>${post.author_name.charAt(0).toUpperCase()}</span>
+                                        ${authorImageUrl ? `<img src="${authorImageUrl}" alt="${escapeHtml(post.author_name)}" onerror="this.parentElement.innerHTML='<span>${authorInitial}</span>'" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">` : `<span>${authorInitial}</span>`}
                                     </div>
                                     <div>
                                         <h4>${escapeHtml(post.author_name)}</h4>
@@ -475,7 +480,8 @@ $pageTitle = 'Approvals - Admin Panel';
                             </div>
                             ${post.image_url ? `<img src="../${post.image_url}" class="approval-image" alt="Post image">` : ''}
                         </div>
-                    `).join('');
+                        `;
+                    }).join('');
                 } else {
                     container.innerHTML = `
                         <div class="empty-state">

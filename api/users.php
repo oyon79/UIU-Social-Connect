@@ -133,6 +133,15 @@ function uploadPhoto($db)
         return;
     }
 
+    // Get old image path before uploading new one
+    if ($type === 'profile') {
+        $oldImageSql = "SELECT profile_image FROM users WHERE id = ?";
+    } else {
+        $oldImageSql = "SELECT cover_image FROM users WHERE id = ?";
+    }
+    $oldImageResult = $db->query($oldImageSql, [$userId]);
+    $oldImage = $oldImageResult[0][$type === 'profile' ? 'profile_image' : 'cover_image'] ?? null;
+
     $uploadDir = '../assets/uploads/profiles/';
     if (!is_dir($uploadDir)) {
         mkdir($uploadDir, 0777, true);
@@ -154,6 +163,11 @@ function uploadPhoto($db)
         $result = $db->query($sql, [$dbPath, $userId]);
 
         if ($result) {
+            // Delete old image file if it exists and is not the default
+            if ($oldImage && $oldImage !== 'default-avatar.png' && file_exists('../' . $oldImage)) {
+                unlink('../' . $oldImage);
+            }
+
             echo json_encode([
                 'success' => true,
                 'message' => 'Photo uploaded successfully',

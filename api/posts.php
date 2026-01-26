@@ -117,6 +117,7 @@ function getAllPosts($db)
                 p.*,
                 u.full_name as author_name,
                 u.role as author_role,
+                u.profile_image as author_image,
                 (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id) as likes_count,
                 (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comments_count,
                 (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id AND user_id = ?) as user_liked,
@@ -146,6 +147,7 @@ function getUserPosts($db)
                 p.*,
                 u.full_name as author_name,
                 u.role as author_role,
+                u.profile_image as author_image,
                 (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id) as likes_count,
                 (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comments_count,
                 (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id AND user_id = ?) as user_liked,
@@ -188,7 +190,7 @@ function toggleLike($db)
         $sql = "INSERT INTO post_likes (post_id, user_id, created_at) VALUES (?, ?, NOW())";
         $db->query($sql, [$postId, $userId]);
         $liked = true;
-        
+
         // Create notification for post owner
         $postSql = "SELECT user_id FROM posts WHERE id = ?";
         $postData = $db->query($postSql, [$postId]);
@@ -196,7 +198,7 @@ function toggleLike($db)
             $userSql = "SELECT full_name FROM users WHERE id = ?";
             $userData = $db->query($userSql, [$userId]);
             $userName = $userData[0]['full_name'] ?? 'Someone';
-            
+
             createNotification(
                 $postData[0]['user_id'],
                 'like',
@@ -236,15 +238,15 @@ function addComment($db)
 
     if ($result) {
         // Get user info for the comment
-        $userSql = "SELECT full_name, role FROM users WHERE id = ?";
+        $userSql = "SELECT full_name, role, profile_image FROM users WHERE id = ?";
         $user = $db->query($userSql, [$userId]);
-        
+
         // Create notification for post owner
         $postSql = "SELECT user_id FROM posts WHERE id = ?";
         $postData = $db->query($postSql, [$postId]);
         if ($postData && $postData[0]['user_id'] != $userId) {
             $userName = $user[0]['full_name'] ?? 'Someone';
-            
+
             createNotification(
                 $postData[0]['user_id'],
                 'comment',
@@ -260,6 +262,7 @@ function addComment($db)
             'comment' => [
                 'user_name' => $user[0]['full_name'],
                 'user_role' => $user[0]['role'],
+                'user_image' => $user[0]['profile_image'],
                 'content' => $content,
                 'created_at' => date('Y-m-d H:i:s')
             ]
@@ -281,7 +284,8 @@ function getComments($db)
     $sql = "SELECT 
                 c.*,
                 u.full_name as user_name,
-                u.role as user_role
+                u.role as user_role,
+                u.profile_image as user_image
             FROM comments c
             INNER JOIN users u ON c.user_id = u.id
             WHERE c.post_id = ?

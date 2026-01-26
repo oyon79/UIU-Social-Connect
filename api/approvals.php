@@ -106,7 +106,7 @@ function getPendingUsers($db)
 
 function getPendingPosts($db)
 {
-    $sql = "SELECT p.*, u.full_name as author_name, u.role as author_role
+    $sql = "SELECT p.*, u.full_name as author_name, u.role as author_role, u.profile_image as author_image
             FROM posts p
             INNER JOIN users u ON p.user_id = u.id
             WHERE p.is_approved = 0

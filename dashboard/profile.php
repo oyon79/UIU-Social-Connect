@@ -53,7 +53,7 @@ if (!$isOwnProfile) {
     $checkFriendshipSql = "SELECT id FROM friendships 
                           WHERE (user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)";
     $friendship = $db->query($checkFriendshipSql, [$currentUserId, $profileUserId, $profileUserId, $currentUserId]);
-    
+
     if ($friendship && !empty($friendship)) {
         $friendshipStatus = 'accepted';
     } else {
@@ -61,7 +61,7 @@ if (!$isOwnProfile) {
         $checkRequestSql = "SELECT status, sender_id FROM friend_requests 
                            WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?)";
         $request = $db->query($checkRequestSql, [$currentUserId, $profileUserId, $profileUserId, $currentUserId]);
-        
+
         if ($request && !empty($request)) {
             if ($request[0]['status'] === 'pending') {
                 if ($request[0]['sender_id'] === $currentUserId) {
@@ -651,7 +651,7 @@ require_once '../includes/header.php';
     async function apiRequest(url, options = {}) {
         try {
             const response = await fetch(url, options);
-            
+
             if (!response.ok) {
                 const errorText = await response.text();
                 let errorMessage = 'Request failed';
@@ -661,16 +661,23 @@ require_once '../includes/header.php';
                 } catch (e) {
                     errorMessage = `HTTP ${response.status}: ${response.statusText}`;
                 }
-                return { success: false, message: errorMessage };
+                return {
+                    success: false,
+                    message: errorMessage
+                };
             }
-            
+
             const data = await response.json();
-            return { success: data.success !== false, data: data, message: data.message || '' };
+            return {
+                success: data.success !== false,
+                data: data,
+                message: data.message || ''
+            };
         } catch (error) {
             console.error('API request error:', error);
-            return { 
-                success: false, 
-                message: error.message === 'Failed to fetch' ? 'Connection error. Please check your internet.' : 'An error occurred' 
+            return {
+                success: false,
+                message: error.message === 'Failed to fetch' ? 'Connection error. Please check your internet.' : 'An error occurred'
             };
         }
     }
@@ -684,7 +691,7 @@ require_once '../includes/header.php';
         alert.style.zIndex = '9999';
         alert.innerHTML = `<span>${message}</span>`;
         document.body.appendChild(alert);
-        
+
         setTimeout(() => {
             alert.remove();
         }, 3000);
@@ -728,12 +735,16 @@ require_once '../includes/header.php';
     }
 
     function createPostHTML(post) {
+        const authorImage = post.author_image || 'default-avatar.png';
+        const authorImageUrl = authorImage !== 'default-avatar.png' ? `../${authorImage}` : '';
+        const authorInitial = post.author_name.charAt(0).toUpperCase();
+
         return `
         <div class="post-card" style="margin-bottom: 1rem;">
             <div class="post-header">
                 <div class="post-author">
                     <div class="avatar">
-                        <span>${post.author_name.charAt(0).toUpperCase()}</span>
+                        ${authorImageUrl ? `<img src="${authorImageUrl}" alt="${escapeHtml(post.author_name)}" onerror="this.parentElement.innerHTML='<span>${authorInitial}</span>'">` : `<span>${authorInitial}</span>`}
                     </div>
                     <div class="post-author-info">
                         <h4>${escapeHtml(post.author_name)}</h4>
@@ -825,19 +836,19 @@ require_once '../includes/header.php';
                 // Validate file
                 const maxSize = 5 * 1024 * 1024; // 5MB
                 const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-                
+
                 if (file.size > maxSize) {
                     showAlert('Image size must be less than 5MB', 'error');
                     e.target.value = '';
                     return;
                 }
-                
+
                 if (!allowedTypes.includes(file.type)) {
                     showAlert('Invalid image type. Please use JPEG, PNG, GIF, or WebP.', 'error');
                     e.target.value = '';
                     return;
                 }
-                
+
                 await uploadPhoto(file, 'profile');
             }
         });
@@ -850,19 +861,19 @@ require_once '../includes/header.php';
                 // Validate file
                 const maxSize = 5 * 1024 * 1024; // 5MB
                 const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-                
+
                 if (file.size > maxSize) {
                     showAlert('Image size must be less than 5MB', 'error');
                     e.target.value = '';
                     return;
                 }
-                
+
                 if (!allowedTypes.includes(file.type)) {
                     showAlert('Invalid image type. Please use JPEG, PNG, GIF, or WebP.', 'error');
                     e.target.value = '';
                     return;
                 }
-                
+
                 await uploadPhoto(file, 'cover');
             }
         });
@@ -874,9 +885,9 @@ require_once '../includes/header.php';
         formData.append('type', type);
 
         // Show loading indicator
-        const uploadBtn = type === 'profile' 
-            ? document.querySelector('.profile-avatar-edit')
-            : document.querySelector('.profile-cover-edit');
+        const uploadBtn = type === 'profile' ?
+            document.querySelector('.profile-avatar-edit') :
+            document.querySelector('.profile-cover-edit');
         if (uploadBtn) {
             uploadBtn.style.opacity = '0.6';
             uploadBtn.style.pointerEvents = 'none';
