@@ -168,6 +168,11 @@ function uploadPhoto($db)
                 unlink('../' . $oldImage);
             }
 
+            // Update session if profile image was changed
+            if ($type === 'profile') {
+                $_SESSION['profile_image'] = $dbPath;
+            }
+
             echo json_encode([
                 'success' => true,
                 'message' => 'Photo uploaded successfully',

@@ -457,8 +457,18 @@ require_once '../includes/header.php';
             <!-- Create Post Box -->
             <div class="create-post-box animate-fade-in">
                 <div class="create-post-input">
-                    <div class="avatar">
-                        <span><?php echo strtoupper(substr($_SESSION['user_name'], 0, 1)); ?></span>
+                    <?php
+                    // Get current user's profile image from database
+                    $currentUserId = $_SESSION['user_id'];
+                    $db = Database::getInstance();
+                    $userSql = "SELECT profile_image FROM users WHERE id = ?";
+                    $currentUser = $db->query($userSql, [$currentUserId]);
+                    $currentUserImage = ($currentUser && !empty($currentUser)) ? $currentUser[0]['profile_image'] : 'default-avatar.png';
+                    ?>
+                    <div class="avatar" style="<?php if ($currentUserImage && $currentUserImage !== 'default-avatar.png'): ?>background-image: url(../<?php echo htmlspecialchars($currentUserImage); ?>); background-size: cover; background-position: center;<?php endif; ?>">
+                        <?php if (!$currentUserImage || $currentUserImage === 'default-avatar.png'): ?>
+                            <span><?php echo strtoupper(substr($_SESSION['user_name'], 0, 1)); ?></span>
+                        <?php endif; ?>
                     </div>
                     <textarea
                         id="postContent"

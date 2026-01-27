@@ -1,8 +1,18 @@
 <?php
-// Get user data from session
+// Get user data from database for real-time updates
 $userId = $_SESSION['user_id'] ?? null;
 $userName = $_SESSION['user_name'] ?? 'User';
 $userRole = $_SESSION['user_role'] ?? 'Student';
+$userProfileImage = 'default-avatar.png';
+
+if ($userId) {
+    $db = Database::getInstance();
+    $userDataSql = "SELECT profile_image FROM users WHERE id = ?";
+    $userData = $db->query($userDataSql, [$userId]);
+    if ($userData && !empty($userData)) {
+        $userProfileImage = $userData[0]['profile_image'] ?? 'default-avatar.png';
+    }
+}
 ?>
 
 <nav class="navbar">
@@ -88,8 +98,10 @@ $userRole = $_SESSION['user_role'] ?? 'Student';
         <!-- User Profile Dropdown -->
         <div class="dropdown">
             <button class="navbar-icon-btn dropdown-toggle" id="userDropdown">
-                <div class="avatar avatar-sm">
-                    <span><?php echo strtoupper(substr($userName, 0, 1)); ?></span>
+                <div class="avatar avatar-sm" style="<?php if ($userProfileImage && $userProfileImage !== 'default-avatar.png'): ?>background-image: url(../<?php echo htmlspecialchars($userProfileImage); ?>); background-size: cover; background-position: center;<?php endif; ?>">
+                    <?php if (!$userProfileImage || $userProfileImage === 'default-avatar.png'): ?>
+                        <span><?php echo strtoupper(substr($userName, 0, 1)); ?></span>
+                    <?php endif; ?>
                 </div>
             </button>
 

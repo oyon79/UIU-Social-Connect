@@ -130,6 +130,7 @@ function handleLogin($input)
             $_SESSION['user_email'] = $user['email'];
             $_SESSION['user_role'] = $user['role'];
             $_SESSION['is_approved'] = $user['is_approved'];
+            $_SESSION['profile_image'] = $user['profile_image'];
 
             logActivity($user['id'], null, 'User Login', 'User logged in successfully');
 
