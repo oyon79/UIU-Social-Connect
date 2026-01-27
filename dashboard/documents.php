@@ -418,16 +418,24 @@ require_once '../includes/header.php';
             const tbody = document.getElementById('documentsBody');
 
             if (data.success && data.documents.length > 0) {
-                tbody.innerHTML = data.documents.map(doc => `
-                    <tr>
+                tbody.innerHTML = data.documents.map(doc => {
+                    const isOwn = doc.user_id == <?php echo $_SESSION['user_id']; ?>;
+                    const statusBadge = !doc.is_approved && isOwn ? '<span style="display: inline-block; margin-left: 0.5rem; padding: 0.25rem 0.5rem; background: #FEF3C7; color: #D97706; border-radius: 4px; font-size: 0.7rem; font-weight: 600;">Pending Approval</span>' : '';
+                    const ownBadge = isOwn ? '<span style="display: inline-block; margin-left: 0.5rem; padding: 0.25rem 0.5rem; background: rgba(255, 122, 0, 0.1); color: var(--primary-orange); border-radius: 4px; font-size: 0.7rem; font-weight: 600;">Your Upload</span>' : '';
+
+                    return `
+                    <tr style="${!doc.is_approved && isOwn ? 'background: rgba(255, 235, 59, 0.05);' : ''}">
                         <td><span class="doc-type-badge">${doc.note_type}</span></td>
-                        <td><strong>${escapeHtml(doc.note_name)}</strong></td>
+                        <td>
+                            <strong>${escapeHtml(doc.note_name)}</strong>
+                            ${statusBadge}${ownBadge}
+                        </td>
                         <td>${escapeHtml(doc.description || 'No description')}</td>
                         <td>${escapeHtml(doc.uploader_name)}</td>
                         <td>${doc.file_size_formatted}</td>
                         <td>${doc.download_count}</td>
                         <td>
-                            <button class="action-btn action-btn-download" onclick="downloadDocument(${doc.id})">
+                            <button class="action-btn action-btn-download" onclick="downloadDocument(${doc.id})" title="Download ${escapeHtml(doc.note_name)}">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; vertical-align: middle;">
                                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                                     <polyline points="7 10 12 15 17 10"></polyline>
@@ -437,7 +445,8 @@ require_once '../includes/header.php';
                             </button>
                         </td>
                     </tr>
-                `).join('');
+                `
+                }).join('');
             } else {
                 tbody.innerHTML = `
                     <tr>

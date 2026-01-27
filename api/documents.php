@@ -107,16 +107,18 @@ function uploadDocument($db)
 
 function getAllDocuments($db)
 {
+    $userId = $_SESSION['user_id'];
     $search = $_GET['search'] ?? '';
     $noteType = $_GET['note_type'] ?? '';
     $sortBy = $_GET['sort_by'] ?? 'recent'; // recent, downloads, name
 
-    $conditions = ['is_approved = 1'];
-    $params = [];
+    // Show approved documents from others OR user's own documents (approved or pending)
+    $conditions = ['(d.is_approved = 1 OR d.user_id = ?)'];
+    $params = [$userId];
 
     // Search filter
     if (!empty($search)) {
-        $conditions[] = '(note_name LIKE ? OR description LIKE ?)';
+        $conditions[] = '(d.note_name LIKE ? OR d.description LIKE ?)';
         $searchTerm = '%' . $search . '%';
         $params[] = $searchTerm;
         $params[] = $searchTerm;
@@ -124,7 +126,7 @@ function getAllDocuments($db)
 
     // Note type filter
     if (!empty($noteType)) {
-        $conditions[] = 'note_type = ?';
+        $conditions[] = 'd.note_type = ?';
         $params[] = $noteType;
     }
 
@@ -184,6 +186,7 @@ function getMyDocuments($db)
 
 function downloadDocument($db)
 {
+    $userId = $_SESSION['user_id'];
     $docId = intval($_GET['doc_id'] ?? 0);
 
     if (!$docId) {
@@ -191,11 +194,12 @@ function downloadDocument($db)
         return;
     }
 
-    $sql = "SELECT * FROM documents WHERE id = ? AND is_approved = 1";
-    $doc = $db->query($sql, [$docId]);
+    // Allow download if document is approved OR user owns it
+    $sql = "SELECT * FROM documents WHERE id = ? AND (is_approved = 1 OR user_id = ?)";
+    $doc = $db->query($sql, [$docId, $userId]);
 
     if (!$doc || empty($doc)) {
-        echo json_encode(['success' => false, 'message' => 'Document not found']);
+        echo json_encode(['success' => false, 'message' => 'Document not found or access denied']);
         return;
     }
 
@@ -211,11 +215,26 @@ function downloadDocument($db)
     $updateSql = "UPDATE documents SET download_count = download_count + 1 WHERE id = ?";
     $db->query($updateSql, [$docId]);
 
-    // Force download
+    // Get original file extension
+    $fileExtension = pathinfo($document['file_path'], PATHINFO_EXTENSION);
+    $downloadName = $document['note_name'];
+
+    // Add extension if not present
+    if (!preg_match('/\.' . preg_quote($fileExtension, '/') . '$/i', $downloadName)) {
+        $downloadName .= '.' . $fileExtension;
+    }
+
+    // Force download with proper headers
     header('Content-Type: application/octet-stream');
-    header('Content-Disposition: attachment; filename="' . basename($document['note_name']) . '"');
+    header('Content-Disposition: attachment; filename="' . $downloadName . '"');
     header('Content-Length: ' . filesize($filePath));
     header('Cache-Control: no-cache, must-revalidate');
+    header('Pragma: public');
+
+    // Clear output buffer
+    if (ob_get_level()) {
+        ob_end_clean();
+    }
 
     readfile($filePath);
     exit;
