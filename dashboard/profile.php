@@ -24,7 +24,7 @@ $profileUserId = isset($_GET['id']) ? intval($_GET['id']) : $currentUserId;
 $isOwnProfile = ($profileUserId === $currentUserId);
 
 // Get user profile data
-$sql = "SELECT id, full_name, email, role, bio, profile_image, cover_image, student_id, created_at 
+$sql = "SELECT id, full_name, email, role, bio, skills, profile_image, cover_image, student_id, created_at 
         FROM users WHERE id = ? AND is_approved = 1";
 $user = $db->query($sql, [$profileUserId]);
 
@@ -225,6 +225,40 @@ require_once '../includes/header.php';
         line-height: 1.6;
         margin-top: 1rem;
         max-width: 600px;
+    }
+
+    .profile-skills {
+        margin-top: 1rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .skill-tag {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.4rem 0.9rem;
+        background: linear-gradient(135deg, rgba(255, 122, 0, 0.1), rgba(255, 165, 0, 0.1));
+        color: var(--primary-orange);
+        border: 1.5px solid rgba(255, 122, 0, 0.3);
+        border-radius: 20px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        cursor: default;
+    }
+
+    .skill-tag:hover {
+        background: linear-gradient(135deg, rgba(255, 122, 0, 0.15), rgba(255, 165, 0, 0.15));
+        border-color: rgba(255, 122, 0, 0.5);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(255, 122, 0, 0.2);
+    }
+
+    .skill-tag::before {
+        content: '#';
+        margin-right: 0.2rem;
+        font-weight: 600;
     }
 
     .profile-stats {
@@ -480,6 +514,20 @@ require_once '../includes/header.php';
                     <?php if ($user['bio']): ?>
                         <p class="profile-bio"><?php echo nl2br(htmlspecialchars($user['bio'])); ?></p>
                     <?php endif; ?>
+
+                    <?php
+                    // Display skills as hashtags
+                    if (!empty($user['skills'])) {
+                        $skills = json_decode($user['skills'], true);
+                        if ($skills && is_array($skills) && count($skills) > 0) {
+                            echo '<div class="profile-skills">';
+                            foreach ($skills as $skill) {
+                                echo '<span class="skill-tag">' . htmlspecialchars($skill) . '</span>';
+                            }
+                            echo '</div>';
+                        }
+                    }
+                    ?>
 
                     <div class="profile-stats">
                         <div class="profile-stat">

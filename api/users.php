@@ -57,7 +57,7 @@ function getProfile($db)
 {
     $userId = intval($_GET['user_id'] ?? $_SESSION['user_id']);
 
-    $sql = "SELECT id, full_name, email, role, bio, profile_image, cover_image, student_id, created_at 
+    $sql = "SELECT id, full_name, email, role, bio, skills, profile_image, cover_image, student_id, created_at 
             FROM users WHERE id = ? AND is_approved = 1";
 
     $user = $db->query($sql, [$userId]);
