@@ -461,7 +461,12 @@ require_once '../includes/header.php';
                     ${user.is_online || user.is_active ? '<div class="online-indicator"></div>' : ''}
                 </div>
                 <div class="conversation-info">
-                    <div class="conversation-name">${escapeHtml(user.full_name)}</div>
+                    <div class="conversation-name">
+                        <a href="profile.php?id=${user.id}" style="color: var(--text-color); text-decoration: none;" 
+                           onmouseover="this.style.color='var(--primary-orange)'" 
+                           onmouseout="this.style.color='var(--text-color)'" 
+                           onclick="event.stopPropagation()">${escapeHtml(user.full_name)}</a>
+                    </div>
                     <div class="conversation-preview">
                         ${user.hasConversation ? escapeHtml(user.last_message || 'No messages yet') : escapeHtml(user.email || user.role || 'Click to start chatting')}
                     </div>
@@ -520,7 +525,8 @@ require_once '../includes/header.php';
 
             if (data.success) {
                 const user = data.user;
-                document.getElementById('chatUserName').textContent = user.full_name;
+                const chatUserName = document.getElementById('chatUserName');
+                chatUserName.innerHTML = `<a href="profile.php?id=${user.id}" style="color: var(--text-color); text-decoration: none; font-weight: 600;" onmouseover="this.style.color='var(--primary-orange)'" onmouseout="this.style.color='var(--text-color)'">${escapeHtml(user.full_name)}</a>`;
                 const avatar = document.getElementById('chatAvatar');
                 if (user.profile_image && user.profile_image !== 'default-avatar.png') {
                     avatar.style.backgroundImage = `url(../${user.profile_image})`;
@@ -709,7 +715,12 @@ require_once '../includes/header.php';
                                 ${user.is_online ? '<div class="online-indicator"></div>' : ''}
                             </div>
                             <div class="conversation-info">
-                                <div class="conversation-name">${escapeHtml(user.full_name)}</div>
+                                <div class="conversation-name">
+                                    <a href="profile.php?id=${user.id}" style="color: var(--text-color); text-decoration: none;" 
+                                       onmouseover="this.style.color='var(--primary-orange)'" 
+                                       onmouseout="this.style.color='var(--text-color)'" 
+                                       onclick="event.stopPropagation()">${escapeHtml(user.full_name)}</a>
+                                </div>
                                 <div class="conversation-preview" style="font-size: 0.75rem;">${escapeHtml(user.email)}</div>
                             </div>
                         </div>

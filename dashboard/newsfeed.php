@@ -956,7 +956,7 @@ require_once '../includes/header.php';
                     ${authorImageUrl ? `<img src="${authorImageUrl}" alt="${authorName}" onerror="this.parentElement.innerHTML='<span>${authorInitial}</span>'">` : `<span>${authorInitial}</span>`}
                 </div>
                 <div class="post-author-info">
-                    <h4>${authorName}</h4>
+                    <h4><a href="profile.php?id=${post.user_id}" style="color: var(--text-color); text-decoration: none;" onmouseover="this.style.color='var(--primary-orange)'" onmouseout="this.style.color='var(--text-color)'">${authorName}</a></h4>
                     <p>${authorRole} • ${timeAgo}</p>
                 </div>
             </div>
@@ -1175,7 +1175,7 @@ require_once '../includes/header.php';
                         </div>
                         <div style="flex: 1;">
                             <div style="font-weight: 600; margin-bottom: 0.25rem;">
-                                ${escapeHtml(comment.user_name || 'Unknown')}
+                                <a href="profile.php?id=${comment.user_id}" style="color: var(--text-color); text-decoration: none;" onmouseover="this.style.color='var(--primary-orange)'" onmouseout="this.style.color='var(--text-color)'">${escapeHtml(comment.user_name || 'Unknown')}</a>
                                 <span style="color: var(--gray-dark); font-weight: normal; font-size: 0.875rem; margin-left: 0.5rem;">${escapeHtml(comment.user_role || '')} • ${timeAgo}</span>
                             </div>
                             <div style="color: var(--text-color);">${escapeHtml(comment.content || '')}</div>
@@ -1659,7 +1659,7 @@ require_once '../includes/header.php';
             const initial = (friend.full_name || 'U').charAt(0).toUpperCase();
             const profileImage = friend.profile_image ? `../${friend.profile_image}` : '';
             return `
-            <div class="user-list-item" onclick="window.location.href='profile.php?user_id=${friend.id}'">
+            <div class="user-list-item" onclick="window.location.href='profile.php?id=${friend.id}'" style="cursor: pointer;">
                 <div class="avatar">
                     ${profileImage ? `<img src="${profileImage}" alt="${escapeHtml(friend.full_name)}" onerror="this.parentElement.innerHTML='<span>${initial}</span>'">` : `<span>${initial}</span>`}
                 </div>
@@ -1740,7 +1740,7 @@ require_once '../includes/header.php';
             const initial = (teacher.full_name || 'T').charAt(0).toUpperCase();
             const profileImage = teacher.profile_image ? `../${teacher.profile_image}` : '';
             return `
-            <div class="user-list-item" onclick="window.location.href='profile.php?user_id=${teacher.id}'">
+            <div class="user-list-item" onclick="window.location.href='profile.php?id=${teacher.id}'" style="cursor: pointer;">
                 <div class="avatar">
                     ${profileImage ? `<img src="${profileImage}" alt="${escapeHtml(teacher.full_name)}" onerror="this.parentElement.innerHTML='<span>${initial}</span>'">` : `<span>${initial}</span>`}
                 </div>

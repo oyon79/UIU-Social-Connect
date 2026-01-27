@@ -431,7 +431,7 @@ require_once '../includes/header.php';
                             ${statusBadge}${ownBadge}
                         </td>
                         <td>${escapeHtml(doc.description || 'No description')}</td>
-                        <td>${escapeHtml(doc.uploader_name)}</td>
+                        <td><a href="profile.php?id=${doc.user_id}" style="color: var(--text-color); text-decoration: none; font-weight: 500;" onmouseover="this.style.color='var(--primary-orange)';this.style.textDecoration='underline'" onmouseout="this.style.color='var(--text-color)';this.style.textDecoration='none'">${escapeHtml(doc.uploader_name)}</a></td>
                         <td>${doc.file_size_formatted}</td>
                         <td>${doc.download_count}</td>
                         <td>

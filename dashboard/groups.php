@@ -733,7 +733,11 @@ require_once '../includes/header.php';
                             ${!member.profile_image || member.profile_image === 'default-avatar.png' ? `<span>${member.full_name.charAt(0).toUpperCase()}</span>` : ''}
                         </div>
                         <div class="member-info">
-                            <div class="member-name">${escapeHtml(member.full_name)}</div>
+                            <div class="member-name">
+                                <a href="profile.php?id=${member.id}" style="color: var(--text-color); text-decoration: none;" 
+                                   onmouseover="this.style.color='var(--primary-orange)'" 
+                                   onmouseout="this.style.color='var(--text-color)'">${escapeHtml(member.full_name)}</a>
+                            </div>
                             <div class="member-role">${escapeHtml(member.role)}</div>
                         </div>
                         ${member.member_role === 'admin' ? '<span class="member-badge">Admin</span>' : member.member_role === 'moderator' ? '<span class="member-badge" style="background: var(--success);">Mod</span>' : ''}

@@ -795,7 +795,7 @@ require_once '../includes/header.php';
                         ${authorImageUrl ? `<img src="${authorImageUrl}" alt="${escapeHtml(post.author_name)}" onerror="this.parentElement.innerHTML='<span>${authorInitial}</span>'">` : `<span>${authorInitial}</span>`}
                     </div>
                     <div class="post-author-info">
-                        <h4>${escapeHtml(post.author_name)}</h4>
+                        <h4><a href="profile.php?id=${post.user_id}" style="color: var(--text-color); text-decoration: none;" onmouseover="this.style.color='var(--primary-orange)'" onmouseout="this.style.color='var(--text-color)'">${escapeHtml(post.author_name)}</a></h4>
                         <p>${escapeHtml(post.author_role)} • ${getTimeAgo(post.created_at)}</p>
                     </div>
                 </div>

@@ -342,7 +342,7 @@ require_once '../includes/header.php';
                             <p style="color: var(--gray-dark); font-size: 0.875rem; margin-bottom: 0.5rem;">${escapeHtml(item.description)}</p>
                             <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8125rem; color: var(--gray-dark); margin-bottom: 1rem;">
                                 <span>${escapeHtml(item.category)} • ${item.condition_status || 'good'}</span>
-                                <span>By ${escapeHtml(item.seller_name)}</span>
+                                <span>By <a href="profile.php?id=${item.user_id}" style="color: var(--text-color); text-decoration: none;" onmouseover="this.style.color='var(--primary-orange)'" onmouseout="this.style.color='var(--text-color)'">${escapeHtml(item.seller_name)}</a></span>
                             </div>
                             <button class="btn btn-primary btn-block" onclick="contactSeller(${item.user_id})">
                                 Contact Seller
