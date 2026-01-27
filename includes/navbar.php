@@ -6,9 +6,9 @@ $userRole = $_SESSION['user_role'] ?? 'Student';
 ?>
 
 <nav class="navbar">
-    <!-- Search Bar -->
-    <div class="navbar-search">
-        <div class="input-group">
+    <!-- Search Bar with Filter -->
+    <div class="navbar-search" style="position: relative; display: flex; align-items: center; gap: 0.5rem;">
+        <div class="input-group" style="flex: 1;">
             <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="11" cy="11" r="8"></circle>
                 <path d="m21 21-4.35-4.35"></path>
@@ -16,10 +16,53 @@ $userRole = $_SESSION['user_role'] ?? 'Student';
             <input
                 type="text"
                 id="globalSearch"
-                placeholder="Search UIU Social Connect..."
+                placeholder="Search users by name..."
+                autocomplete="off"
                 style="width: 100%; height: 40px; padding: 0 1rem 0 3rem; background: var(--bg-primary); border: 1px solid transparent; border-radius: 20px; font-size: 15px; transition: all 0.3s ease;"
                 onfocus="this.style.background='var(--bg-secondary)'; this.style.borderColor='var(--border-medium)';"
-                onblur="this.style.background='var(--bg-primary)'; this.style.borderColor='transparent';">
+                onblur="setTimeout(() => { this.style.background='var(--bg-primary)'; this.style.borderColor='transparent'; }, 200);">
+        </div>
+
+        <!-- Filter Button -->
+        <button class="navbar-icon-btn" id="filterBtn" style="position: relative; height: 40px; min-width: 40px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+            </svg>
+            <span id="filterBadge" class="badge" style="display: none; position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; padding: 0 4px; font-size: 11px; background: var(--primary-orange);">0</span>
+        </button>
+
+        <!-- Search Results Dropdown -->
+        <div id="searchResultsDropdown" style="display: none; position: absolute; top: 45px; left: 0; right: 50px; background: white; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); max-height: 400px; overflow-y: auto; z-index: 1000;">
+            <!-- Results will be loaded here -->
+        </div>
+
+        <!-- Filter Dropdown -->
+        <div id="filterDropdown" style="display: none; position: absolute; top: 45px; right: 0; width: 320px; background: white; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); z-index: 1001;">
+            <div style="padding: 1rem; border-bottom: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center;">
+                <h4 style="margin: 0; font-size: 15px; font-weight: 600;">Filter by Skills</h4>
+                <button id="clearFiltersBtn" class="btn btn-ghost btn-sm" style="font-size: 13px; color: var(--primary-orange);">Clear All</button>
+            </div>
+
+            <!-- Search Skills -->
+            <div style="padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-light);">
+                <input
+                    type="text"
+                    id="skillSearchInput"
+                    placeholder="Search skills..."
+                    autocomplete="off"
+                    style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border-medium); border-radius: 8px; font-size: 14px;">
+            </div>
+
+            <!-- Skills List -->
+            <div id="skillsList" style="max-height: 350px; overflow-y: auto; padding: 0.5rem;">
+                <!-- Skills will be loaded here -->
+            </div>
+
+            <div style="padding: 1rem; border-top: 1px solid var(--border-light); display: flex; gap: 0.5rem;">
+                <button id="applyFiltersBtn" class="btn btn-primary" style="flex: 1; padding: 0.6rem; font-size: 14px;">
+                    Apply Filters
+                </button>
+            </div>
         </div>
     </div>
 
@@ -338,23 +381,39 @@ $userRole = $_SESSION['user_role'] ?? 'Student';
         userDropdownMenu.classList.remove('active');
     });
 
-    // Close dropdowns when clicking outside
-    document.addEventListener('click', () => {
-        userDropdownMenu?.classList.remove('active');
-        if (notificationsDropdown) {
-            notificationsDropdown.style.display = 'none';
-        }
-    });
-
-    // Global search
+    // Global search functionality
     const globalSearch = document.getElementById('globalSearch');
-    globalSearch?.addEventListener('input', debounce(async (e) => {
-        const query = e.target.value.trim();
-        if (query.length >= 2) {
-            // Implement search functionality
-            console.log('Searching for:', query);
-        }
-    }, 300));
+    const searchResultsDropdown = document.getElementById('searchResultsDropdown');
+    const filterBtn = document.getElementById('filterBtn');
+    const filterDropdown = document.getElementById('filterDropdown');
+    const filterBadge = document.getElementById('filterBadge');
+    const skillsList = document.getElementById('skillsList');
+    const skillSearchInput = document.getElementById('skillSearchInput');
+    const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+    const applyFiltersBtn = document.getElementById('applyFiltersBtn');
+
+    let selectedSkills = [];
+    const allSkills = [
+        "Frontend Developer", "Backend Developer", "Full Stack Developer",
+        "Mobile App Developer", "UI/UX Designer", "Graphics Designer",
+        "QA / Software Tester", "Machine Learning Engineer", "Data Scientist",
+        "AI Engineer", "Database Engineer", "DevOps Engineer",
+        "Cloud Engineer", "Cyber Security Enthusiast", "Game Developer",
+        "IoT / Embedded Systems", "Blockchain Developer", "AR / VR Developer",
+        "Research Assistant", "Competitive Programmer", "Product Manager (Tech)",
+        "Business Analyst", "Technical Writer"
+    ];
+
+    // Helper functions
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text || '';
+        return div.innerHTML;
+    }
+
+    function escapeHtmlAttr(text) {
+        return (text || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
 
     function debounce(func, wait) {
         let timeout;
@@ -367,4 +426,240 @@ $userRole = $_SESSION['user_role'] ?? 'Student';
             timeout = setTimeout(later, wait);
         };
     }
+
+    // Initialize skills list
+    function renderSkillsList(searchQuery = '') {
+        const filteredSkills = allSkills.filter(skill =>
+            skill.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+
+        skillsList.innerHTML = filteredSkills.map(skill => {
+            const isSelected = selectedSkills.includes(skill);
+            return `
+                <label class="skill-filter-item" style="display: flex; align-items: center; padding: 0.6rem 0.75rem; cursor: pointer; border-radius: 8px; transition: background 0.2s ease; ${isSelected ? 'background: rgba(255, 122, 0, 0.1);' : ''}">
+                    <input 
+                        type="checkbox" 
+                        value="${escapeHtmlAttr(skill)}" 
+                        ${isSelected ? 'checked' : ''}
+                        style="margin-right: 0.75rem; width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary-orange);">
+                    <span style="font-size: 14px; color: var(--text-color); flex: 1;">#${escapeHtml(skill)}</span>
+                    ${isSelected ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary-orange)" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>' : ''}
+                </label>
+            `;
+        }).join('');
+
+        // Add event listeners
+        skillsList.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.addEventListener('change', (e) => {
+                const skill = e.target.value;
+                if (e.target.checked) {
+                    if (!selectedSkills.includes(skill)) {
+                        selectedSkills.push(skill);
+                    }
+                } else {
+                    selectedSkills = selectedSkills.filter(s => s !== skill);
+                }
+                updateFilterBadge();
+                renderSkillsList(skillSearchInput.value);
+            });
+        });
+
+        // Add hover effects
+        skillsList.querySelectorAll('.skill-filter-item').forEach(item => {
+            item.addEventListener('mouseenter', function() {
+                if (!this.querySelector('input').checked) {
+                    this.style.background = 'var(--bg-secondary)';
+                }
+            });
+            item.addEventListener('mouseleave', function() {
+                if (!this.querySelector('input').checked) {
+                    this.style.background = 'transparent';
+                }
+            });
+        });
+    }
+
+    // Update filter badge
+    function updateFilterBadge() {
+        if (selectedSkills.length > 0) {
+            filterBadge.textContent = selectedSkills.length;
+            filterBadge.style.display = 'block';
+            filterBtn.style.color = 'var(--primary-orange)';
+        } else {
+            filterBadge.style.display = 'none';
+            filterBtn.style.color = '';
+        }
+    }
+
+    // Perform search with filters
+    async function performSearch(query) {
+        searchResultsDropdown.innerHTML = `
+            <div style="padding: 1rem; text-align: center;">
+                <div class="loader" style="border: 3px solid var(--gray-light); border-top: 3px solid var(--primary-orange); border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+                <p style="margin-top: 0.5rem; font-size: 14px; color: var(--text-secondary);">Searching...</p>
+            </div>
+        `;
+        searchResultsDropdown.style.display = 'block';
+        filterDropdown.style.display = 'none';
+
+        try {
+            // Build query string with filters
+            let queryString = `../api/users.php?action=search_users&query=${encodeURIComponent(query)}`;
+
+            if (selectedSkills.length > 0) {
+                queryString += `&skills=${encodeURIComponent(selectedSkills.join(','))}`;
+            }
+
+            const response = await fetch(queryString);
+            const data = await response.json();
+
+            if (data.success && data.users && data.users.length > 0) {
+                searchResultsDropdown.innerHTML = `
+                    <div style="padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-light); background: var(--bg-secondary);">
+                        <p style="margin: 0; font-size: 13px; font-weight: 600; color: var(--text-secondary);">
+                            Found ${data.users.length} user${data.users.length !== 1 ? 's' : ''}${selectedSkills.length > 0 ? ' (filtered)' : ''}
+                        </p>
+                        ${selectedSkills.length > 0 ? `<p style="margin: 0.25rem 0 0 0; font-size: 11px; color: var(--primary-orange);">${selectedSkills.map(s => '#' + s).join(', ')}</p>` : ''}
+                    </div>
+                    ${data.users.map(user => `
+                        <a href="profile.php?id=${user.id}" class="search-result-item" style="display: flex; align-items: center; gap: 1rem; padding: 0.875rem 1rem; text-decoration: none; color: var(--text-color); border-bottom: 1px solid var(--border-light); transition: background 0.2s ease;">
+                            <div class="avatar avatar-sm" style="background: linear-gradient(135deg, var(--primary-orange), var(--primary-orange-light)); flex-shrink: 0;">
+                                <span style="color: white; font-weight: 600;">${user.full_name.charAt(0).toUpperCase()}</span>
+                            </div>
+                            <div style="flex: 1; min-width: 0;">
+                                <p style="margin: 0; font-weight: 500; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                    ${escapeHtml(user.full_name)}
+                                </p>
+                                <p style="margin: 0; font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 0.5rem;">
+                                    <span>${escapeHtml(user.role)}</span>
+                                    ${user.student_id ? `<span>•</span><span>ID: ${escapeHtml(user.student_id)}</span>` : ''}
+                                </p>
+                                ${user.skills && user.skills.length > 0 ? `
+                                    <div style="display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.4rem;">
+                                        ${user.skills.slice(0, 3).map(skill => `
+                                            <span style="font-size: 10px; padding: 0.15rem 0.4rem; background: rgba(255, 122, 0, 0.1); color: var(--primary-orange); border-radius: 4px; white-space: nowrap;">#${escapeHtml(skill)}</span>
+                                        `).join('')}
+                                        ${user.skills.length > 3 ? `<span style="font-size: 10px; color: var(--text-secondary);">+${user.skills.length - 3}</span>` : ''}
+                                    </div>
+                                ` : ''}
+                            </div>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0; opacity: 0.5;">
+                                <polyline points="9 18 15 12 9 6"></polyline>
+                            </svg>
+                        </a>
+                    `).join('')}
+                `;
+
+                // Add hover effects
+                document.querySelectorAll('.search-result-item').forEach(item => {
+                    item.addEventListener('mouseenter', function() {
+                        this.style.background = 'var(--bg-secondary)';
+                    });
+                    item.addEventListener('mouseleave', function() {
+                        this.style.background = 'transparent';
+                    });
+                });
+            } else {
+                searchResultsDropdown.innerHTML = `
+                    <div style="padding: 2rem 1rem; text-align: center;">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.3; margin: 0 auto;">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <path d="m21 21-4.35-4.35"></path>
+                        </svg>
+                        <p style="margin-top: 1rem; color: var(--text-secondary); font-size: 14px;">No users found${query ? ' for "' + escapeHtml(query) + '"' : ''}</p>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('Error searching users:', error);
+            searchResultsDropdown.innerHTML = `
+                <div style="padding: 2rem 1rem; text-align: center; color: var(--error);">
+                    <p style="margin: 0; font-size: 14px;">Failed to search users</p>
+                </div>
+            `;
+        }
+    }
+
+    // Event listeners
+
+    // Filter button click
+    filterBtn?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isVisible = filterDropdown.style.display === 'block';
+
+        filterDropdown.style.display = isVisible ? 'none' : 'block';
+        searchResultsDropdown.style.display = 'none';
+        if (notificationsDropdown) {
+            notificationsDropdown.style.display = 'none';
+        }
+        userDropdownMenu?.classList.remove('active');
+
+        if (!isVisible) {
+            renderSkillsList();
+        }
+    });
+
+    // Skill search input
+    skillSearchInput?.addEventListener('input', (e) => {
+        renderSkillsList(e.target.value);
+    });
+
+    // Clear filters
+    clearFiltersBtn?.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        selectedSkills = [];
+        updateFilterBadge();
+        renderSkillsList(skillSearchInput.value);
+    });
+
+    // Apply filters
+    applyFiltersBtn?.addEventListener('click', () => {
+        filterDropdown.style.display = 'none';
+        const query = globalSearch.value.trim();
+        if (query.length >= 2 || selectedSkills.length > 0) {
+            performSearch(query);
+        }
+    });
+
+    // Search input
+    globalSearch?.addEventListener('input', debounce(async (e) => {
+        const query = e.target.value.trim();
+
+        if (query.length >= 2 || selectedSkills.length > 0) {
+            await performSearch(query);
+        } else {
+            searchResultsDropdown.style.display = 'none';
+        }
+    }, 300));
+
+    // Clear search on escape key
+    globalSearch?.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            globalSearch.value = '';
+            searchResultsDropdown.style.display = 'none';
+            globalSearch.blur();
+        }
+    });
+
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', (e) => {
+        // Close search and filter dropdowns
+        if (!e.target.closest('.navbar-search')) {
+            searchResultsDropdown.style.display = 'none';
+            filterDropdown.style.display = 'none';
+        }
+
+        // Close user dropdown
+        if (!e.target.closest('.dropdown') && !e.target.closest('#userDropdown')) {
+            userDropdownMenu?.classList.remove('active');
+        }
+
+        // Close notifications dropdown
+        if (!e.target.closest('#notificationsBtn') && !e.target.closest('#notificationsDropdown')) {
+            if (notificationsDropdown) {
+                notificationsDropdown.style.display = 'none';
+            }
+        }
+    });
 </script>
